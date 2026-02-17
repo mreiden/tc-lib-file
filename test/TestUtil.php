@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * TestUtil.php
  *
@@ -35,7 +37,7 @@ class TestUtil extends TestCase
         mixed $expected,
         mixed $actual,
         float $delta = 0.01,
-        string $message = ''
+        string $message = '',
     ): void {
         parent::assertEqualsWithDelta($expected, $actual, $delta, $message);
     }
@@ -43,7 +45,7 @@ class TestUtil extends TestCase
     /**
      * @param class-string<\Throwable> $exception
      */
-    public function bcExpectException($exception): void
+    public function bcExpectException(string $exception): void
     {
         parent::expectException($exception);
     }
