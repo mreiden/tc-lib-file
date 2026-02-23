@@ -364,5 +364,8 @@ class FileTest extends TestUtil
         $this->assertFalse(FILE::hasForbiddenProtocol('http://www.example.com/test.txt'));
         $this->assertFalse(FILE::hasForbiddenProtocol('./some/file.txt'));
         $this->assertFalse(FILE::hasForbiddenProtocol('file://some/file.txt'));
+        // Case-Insensitive should also work
+        $this->assertFalse(FILE::hasForbiddenProtocol('httpS://www.example.com/test.txt'));
+        $this->assertFalse(FILE::hasForbiddenProtocol('FiLe://some/file.txt'));
     }
 }

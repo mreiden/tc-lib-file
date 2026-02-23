@@ -210,7 +210,7 @@ class File
         if (
             (\ini_get('allow_url_fopen') && !\defined('FORCE_CURL')) ||
             !\function_exists('curl_init') ||
-            !\preg_match('%^(https?|ftp)://%', $url)
+            !\preg_match('%^(https?|ftp)://%i', $url)
         ) {
             return false;
         }
@@ -320,7 +320,7 @@ class File
     protected function getAltPathFromUrl(string $url): string
     {
         if (
-            !\preg_match('%^(https?)://%', $url) ||
+            !\preg_match('%^(https?)://%i', $url) ||
             empty($_SERVER['HTTP_HOST']) ||
             !\is_string($_SERVER['HTTP_HOST']) ||
             empty($_SERVER['DOCUMENT_ROOT']) ||
@@ -356,7 +356,7 @@ class File
         if (
             isset($_SERVER['SCRIPT_URI']) &&
             \is_string($_SERVER['SCRIPT_URI']) &&
-            !\preg_match('%^(ftp|https?)://%', $file) &&
+            !\preg_match('%^(ftp|https?)://%i', $file) &&
             !str_starts_with($file, '//')
         ) {
             $urldata = @\parse_url($_SERVER['SCRIPT_URI']);
@@ -391,6 +391,6 @@ class File
      */
     public static function hasForbiddenProtocol($path)
     {
-        return \str_contains($path, '://') && \preg_match('%^(file|ftp|https?)://%', $path) !== 1;
+        return \str_contains($path, '://') && \preg_match('%^(file|ftp|https?)://%i', $path) !== 1;
     }
 }
