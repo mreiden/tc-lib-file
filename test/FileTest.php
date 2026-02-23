@@ -350,24 +350,19 @@ class FileTest extends TestUtil
     #[Test]
     public function testHasDoubleDots(): void
     {
-        $file = $this->getTestObject();
-        $res = $file->hasDoubleDots('/tmp/../test.txt');
-        $this->assertTrue($res);
-        $res = $file->hasDoubleDots('/tmp/test.txt');
-        $this->assertFalse($res);
+        $this->assertTrue(FILE::hasDoubleDots('/tmp/../test.txt'));
+        $this->assertFalse(FILE::hasDoubleDots('/tmp/test.txt'));
     }
 
     #[Test]
     public function testHasForbiddenProtocol(): void
     {
-        $file = $this->getTestObject();
-        $res = $file->hasForbiddenProtocol('phar://test.txt');
-        $this->assertTrue($res);
-        $res = $file->hasForbiddenProtocol('http://www.example.com/test.txt');
-        $this->assertFalse($res);
-        $res = $file->hasForbiddenProtocol('file://some/file.txt');
-        $this->assertFalse($res);
-        $res = $file->hasForbiddenProtocol('./some/file.txt');
-        $this->assertFalse($res);
+        $this->assertTrue(FILE::hasForbiddenProtocol('phar://test.txt'));
+        $this->assertTrue(FILE::hasForbiddenProtocol('gopher://server/test.txt'));
+        $this->assertTrue(FILE::hasForbiddenProtocol('invalid:///test.txt'));
+
+        $this->assertFalse(FILE::hasForbiddenProtocol('http://www.example.com/test.txt'));
+        $this->assertFalse(FILE::hasForbiddenProtocol('./some/file.txt'));
+        $this->assertFalse(FILE::hasForbiddenProtocol('file://some/file.txt'));
     }
 }

@@ -81,7 +81,7 @@ class File
      */
     public function fopenLocal(string $filename, string $mode): mixed
     {
-        if ($this->hasDoubleDots($filename)) {
+        if (static::hasDoubleDots($filename)) {
             throw new FileException('path contains parent directory dots');
         }
 
@@ -185,7 +185,7 @@ class File
      */
     public function getFileData(string $file): string|false
     {
-        if ($this->hasDoubleDots($file) || $this->hasForbiddenProtocol($file)) {
+        if (static::hasDoubleDots($file) || static::hasForbiddenProtocol($file)) {
             return false;
         }
 
