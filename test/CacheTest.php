@@ -137,14 +137,12 @@ class CacheTest extends TestUtil
     {
         $cache = $this->getTestObject();
 
-        // invoke protected normalizePath via reflection so we can test
-        // the branch where realpath() returns false
-        $ref = new \ReflectionMethod($cache, 'normalizePath');
-        $ref->setAccessible(true);
-
         $invalid = \sys_get_temp_dir() . '/nonexistent_' . \uniqid('', true);
         $this->assertFalse(\file_exists($invalid), 'Sanity check: path should not exist');
 
+        // invoke protected normalizePath via reflection so we can test
+        // the branch where realpath() returns false
+        $ref = new \ReflectionMethod($cache, 'normalizePath');
         $this->assertSame('', $ref->invoke($cache, $invalid));
     }
 

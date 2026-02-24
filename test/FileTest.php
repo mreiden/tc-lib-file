@@ -150,9 +150,9 @@ class FileTest extends TestUtil
         $handle = \fopen($url, 'rb');
         $this->assertNotFalse($handle);
 
-        // Should fail to read last byte
-        $this->expectException(FileException::class);
-        $file->rfRead($handle, $numBytes);
+        // Should read numBytes-1
+        $res = $file->rfRead($handle, $numBytes);
+        $this->assertSame(\str_repeat('*', $numBytes - 1), $res);
     }
 
     #[Test]
@@ -177,6 +177,7 @@ class FileTest extends TestUtil
         $file->rfRead($handle, 1);
     }
 
+    #[Test]
     public function testRfReadZeroLength(): void
     {
         $this->expectException(\ValueError::class);
@@ -192,6 +193,7 @@ class FileTest extends TestUtil
         \fclose($handle);
     }
 
+    #[Test]
     public function testRfReadEofShorter(): void
     {
         $file = $this->getTestObject();
@@ -206,8 +208,8 @@ class FileTest extends TestUtil
     }
 
     /**
-     * @param string $file     File path
-     * @param array{string, array<int, string>}  $expected Expected result
+     * @param string                            $file      File path
+     * @param array{string, array<int, string>} $expected  Expected result
      */
     #[Test]
     #[DataProvider('getAltFilePathsDataProvider')]
@@ -287,7 +289,6 @@ class FileTest extends TestUtil
         $_SERVER['SCRIPT_URI'] = 'not-a-url';
 
         $rfm = new \ReflectionMethod($testObj, 'getAltUrlFromPath');
-        $rfm->setAccessible(true);
 
         $input = 'some/path.txt';
         $result = $rfm->invoke($testObj, $input);
