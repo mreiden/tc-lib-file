@@ -16,6 +16,8 @@
 
 namespace Com\Tecnick\File;
 
+use Com\Tecnick\File\Exception as FileException;
+
 /**
  * Com\Tecnick\File\Byte
  *
@@ -29,19 +31,21 @@ namespace Com\Tecnick\File;
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
  * @link      https://github.com/tecnickcom/tc-lib-file
  */
-class Byte
+readonly class Byte
 {
+    public \SplFixedArray $bytes;
+
     /**
      * Initialize a new string to be processed
      *
-     * @param string $str String from where to extract values
+     * @param string $str String (binary) from where to extract values
      */
-    public function __construct(
-        /**
-         * String to process
-         */
-        protected string $str
-    ) {
+    public function __construct(string $str)
+    {
+        // Unpack string into an array of bytes and convert to SplFixedArray to
+        // avoid using \substr thousands of times for accessing 1-4 bytes at a time.
+        $binary = \unpack('C*', $str);
+        $this->bytes = \SplFixedArray::fromArray($binary, false);
     }
 
     /**
@@ -53,8 +57,7 @@ class Byte
      */
     public function getByte(int $offset): int
     {
-        $val = \unpack('Ci', \substr($this->str, $offset, 1));
-        return $val === false ? 0 : (\is_int($val['i']) ? ($val['i'] & 0xFF) : 0);
+        return $this->bytes[$offset] & 0xff;
     }
 
     /**
@@ -66,8 +69,7 @@ class Byte
      */
     public function getUShort(int $offset): int
     {
-        $val = \unpack('ni', \substr($this->str, $offset, 2));
-        return $val === false ? 0 : (\is_int($val['i']) ? ($val['i'] & 0xFFFF) : 0);
+        return (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
     }
 
     /**
@@ -79,10 +81,10 @@ class Byte
      */
     public function getShort(int $offset): int
     {
-        $val = $this->getUShort($offset);
-        // convert to signed 16-bit (two's complement)
-        return ($val ^ 0x8000) - 0x8000;
-        ;
+        // The uint16 value
+        $u_val = (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
+        // Use bitwise two's complement uint16 to int16 formula
+        return ($u_val ^ 0x8000) - 0x8000;
     }
 
     /**
@@ -95,7 +97,7 @@ class Byte
      */
     public function getUFWord(int $offset): int
     {
-        return $this->getUShort($offset);
+        return (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
     }
 
     /**
@@ -108,7 +110,10 @@ class Byte
      */
     public function getFWord(int $offset): int
     {
-        return $this->getShort($offset);
+        // The uint16 value
+        $u_val = (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
+        // Use bitwise two's complement uint16 to int16 formula
+        return ($u_val ^ 0x8000) - 0x8000;
     }
 
     /**
@@ -120,8 +125,10 @@ class Byte
      */
     public function getULong(int $offset): int
     {
-        $val = \unpack('Ni', \substr($this->str, $offset, 4));
-        return $val === false ? 0 : (\is_int($val['i']) ? ($val['i'] & 0xFFFFFFFF) : 0);
+        return (($this->bytes[$offset] << 24) & 0xff000000) |
+            (($this->bytes[$offset + 1] << 16) & 0xff0000) |
+            (($this->bytes[$offset + 2] << 8) & 0xff00) |
+            ($this->bytes[$offset + 3] & 0xff);
     }
 
     /**
@@ -133,18 +140,26 @@ class Byte
      */
     public function getLong(int $offset): int
     {
-        $val = $this->getULong($offset);
-        // convert to signed 32-bit (two's complement)
-        return ($val ^ 0x80000000) - 0x80000000;
+        $u_val =
+            (($this->bytes[$offset] << 24) & 0xff000000) |
+            (($this->bytes[$offset + 1] << 16) & 0xff0000) |
+            (($this->bytes[$offset + 2] << 8) & 0xff00) |
+            ($this->bytes[$offset + 3] & 0xff);
+        // Use bitwise two's complement uint32 to int32 formula
+        return ($u_val ^ 0x80000000) - 0x80000000;
     }
 
     /**
-     * Get FIXED from string (32-bit signed fixed-point number (16.16).
+     * Get FIXED from string (Big Endian 32-bit signed fixed-point number (16.16)).
+     *
+     * A fixed-point 16.16 number is 'int16 + uint16/65536.0' where the divisor 65536=(1<<16).
+     * A simplified equivalent version is to read an int32 and divide by 65536.
      *
      * @param int $offset Point from where to read the data.
      */
     public function getFixed(int $offset): float
     {
-        return (float) $this->getShort($offset) + ((float) $this->getUShort($offset + 2) / (float) 0x10000);
+        $int16 = (((($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff)) ^ 0x8000) - 0x8000;
+        return $int16 + ((($this->bytes[$offset + 2] << 8) & 0xff00) | ($this->bytes[$offset + 3] & 0xff)) / 65536.0;
     }
 }

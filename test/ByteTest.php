@@ -16,6 +16,7 @@
 
 namespace Test;
 
+use Com\Tecnick\File\Byte;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -31,15 +32,16 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class ByteTest extends TestUtil
 {
-    protected function getTestObject(): \Com\Tecnick\File\Byte
+    protected function getTestObject(): Byte
     {
-        $str = \chr(0) . \chr(0) . \chr(0) . \chr(0)
-            . \chr(1) . \chr(3) . \chr(7) . \chr(15)
-            . \chr(31) . \chr(63) . \chr(127) . \chr(255)
-            . \chr(254) . \chr(252) . \chr(248) . \chr(240)
-            . \chr(224) . \chr(192) . \chr(128) . \chr(0)
-            . \chr(255) . \chr(255) . \chr(255) . \chr(255);
-        return new \Com\Tecnick\File\Byte($str);
+        $str =
+            "\0\0\0\0" .
+            (\chr(1) . \chr(3) . \chr(7) . \chr(15)) .
+            (\chr(31) . \chr(63) . \chr(127) . \chr(255)) .
+            (\chr(254) . \chr(252) . \chr(248) . \chr(240)) .
+            (\chr(224) . \chr(192) . \chr(128) . \chr(0)) .
+            (\chr(255) . \chr(255) . \chr(255) . \chr(255));
+        return new Byte($str);
     }
 
     #[DataProvider('getByteDataProvider')]
@@ -259,9 +261,14 @@ class ByteTest extends TestUtil
     public function testGetFixed(int $offset, int|float $expected): void
     {
         $byte = $this->getTestObject();
-        $res = $byte->getFixed($offset);
+
         // compare floats with a small tolerance to avoid precision issues
+        $res = $byte->getFixed($offset);
         $this->assertEqualsWithDelta($expected, $res, 1e-12, "float mismatch at offset $offset");
+
+        // Also test an alternate algorithm of reading all 4 bytes as an int32 and dividing by 65536.0
+        $res2 = $byte->getLong($offset) / 65536.0;
+        $this->assertEqualsWithDelta($expected, $res2, $delta);
     }
     /**
      * @return array<array{int, float}>
@@ -273,7 +280,7 @@ class ByteTest extends TestUtil
             // offset 0: all zero bytes
             [0, 0.0],
             // offset 1: high=0, low=1 -> 1/65536
-            [1, 1.52587890625E-5],
+            [1, 1.52587890625e-5],
             // offset 2: high=0, low=259 -> 259/65536
             [2, 0.0039520263671875],
             // offset 3: high=1, low=775 -> 1 + 775/65536
@@ -283,7 +290,7 @@ class ByteTest extends TestUtil
             // large positive value near next integer
             [19, 255.99998474121094],
             // negative value very close to zero (tiny fraction)
-            [20, -1.52587890625E-5],
+            [20, -1.52587890625e-5],
         ];
     }
 }
