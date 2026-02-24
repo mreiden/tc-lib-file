@@ -281,7 +281,7 @@ class ByteTest extends TestUtil
 
         // Also test an alternate algorithm of reading all 4 bytes as an int32 and dividing by 65536.0
         $res2 = $byte->getLong($offset) / 65536.0;
-        $this->assertEqualsWithDelta($expected, $res2, $delta);
+        $this->assertEqualsWithDelta($expected, $res2, 1e-12);
     }
     /**
      * @return array<array{int, float}>
