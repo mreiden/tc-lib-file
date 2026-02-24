@@ -147,9 +147,6 @@ class File
             $data .= $dataNext;
             $rest -= \strlen($dataNext);
         }
-        if (\feof($resource) && \strlen($data) !== $length) {
-            throw new FileException('Unable to read remainder of file.');
-        }
 
         return $data;
     }
