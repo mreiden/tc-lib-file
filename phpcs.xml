@@ -9,6 +9,9 @@
     <!-- Supported PHP Versions -->
     <config name="testVersion" value="8.1-8.5"/>
 
+    <!-- Ignore non-auto-fixable errors on exit -->
+    <config name="ignore_non_auto_fixable_on_exit" value="1"/>
+
     <!-- Directories and/or individual files to check -->
     <file>./src</file>
     <file>./test</file>
