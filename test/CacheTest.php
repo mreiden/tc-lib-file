@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * CacheTest.php
  *
@@ -16,6 +18,12 @@
 
 namespace Test;
 
+use Com\Tecnick\File\Cache;
+use Com\Tecnick\File\Exception as FileException;
+//use PHPUnit\Framework\Attributes\PreserveGlobalState;
+//use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\Test;
+
 /**
  * Unit Test
  *
@@ -29,32 +37,82 @@ namespace Test;
  */
 class CacheTest extends TestUtil
 {
-    protected function getTestObject(): \Com\Tecnick\File\Cache
+    protected function getTestObject(): Cache
     {
-        return new \Com\Tecnick\File\Cache('1_2-a+B/c');
+        return new Cache('1_2-a+B/c');
     }
 
+    /*
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testCacheDirFromConstant(): void
+    {
+        $cachePath = sys_get_temp_dir() . '/tcpdf-' . hash('SHA256', \random_bytes(1024)) . '/';
+        \mkdir($cachePath, 0777, true);
+        $cachePath = \realpath($cachePath) . '/';
+        \define('K_PATH_CACHE', $cachePath);
+
+        $this->assertSame($cachePath, K_PATH_CACHE);
+
+        $cache = new Cache();
+        $this->assertSame($cachePath, $cache->getCachePath());
+        \rmdir($cachePath);
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testCacheDirNotAvailable(): void
+    {
+        $cachePath = sys_get_temp_dir() . '/tcpdf-' . hash('SHA256', \random_bytes(1024)) . '/';
+        \mkdir($cachePath, 0777, true);
+        $cachePath = \realpath($cachePath) . '/';
+        \define('K_PATH_CACHE', $cachePath);
+        \rmdir($cachePath);
+
+        $this->assertSame($cachePath, K_PATH_CACHE);
+        $this->expectException(FileException::class);
+        new Cache();
+    }
+    */
+
+    #[Test]
     public function testAutoPrefix(): void
     {
-        $cache = new \Com\Tecnick\File\Cache();
+        $cache = new Cache();
         $this->assertNotEmpty($cache->getFilePrefix());
     }
 
+    #[Test]
     public function testGetCachePath(): void
     {
         $cache = $this->getTestObject();
         $cachePath = $cache->getCachePath();
-        $this->assertEquals('/', $cachePath[0]);
-        $this->assertEquals('/', \substr($cachePath, -1));
+
+        $systemRoot = realpath('/');
+        if ($systemRoot === false) {
+            throw new FileException("Cannot find realpath of '/'");
+        }
+        $this->assertNotSame(false, $systemRoot);
+        $this->assertSame($systemRoot, \substr($cachePath, 0, \strlen($systemRoot)));
+        $this->assertSame('/', \substr($cachePath, -1));
 
         $cache->setCachePath();
         $this->assertEquals($cachePath, $cache->getCachePath());
 
-        $path = '/tmp';
+        // Test mandatory trailing slash added
+        $path = sys_get_temp_dir();
         $cache->setCachePath($path);
-        $this->assertEquals('/tmp/', $cache->getCachePath());
+        $this->assertEquals($path . '/', $cache->getCachePath());
+
+        // Test mandatory trailing slash not added if already exists
+        $path .= '/';
+        $cache->setCachePath($path);
+        $this->assertEquals($path, $cache->getCachePath());
     }
 
+    #[Test]
     public function testGetFilePrefix(): void
     {
         $cache = $this->getTestObject();
@@ -62,14 +120,19 @@ class CacheTest extends TestUtil
         $this->assertEquals('_1_2-a-B_c_', $filePrefix);
     }
 
+    #[Test]
     public function testGetNewFileName(): void
     {
         $cache = $this->getTestObject();
+
+        // Test ability to get new file
         $val = $cache->getNewFileName('tst', '0123');
         $this->assertNotFalse($val);
+
         $this->bcAssertMatchesRegularExpression('/_1_2-a-B_c_tst_0123_/', $val);
     }
 
+    #[Test]
     public function testNormalizePathInvalid(): void
     {
         $cache = $this->getTestObject();
@@ -85,19 +148,37 @@ class CacheTest extends TestUtil
         $this->assertSame('', $ref->invoke($cache, $invalid));
     }
 
+    #[Test]
+    public function testExceptionWindowsTooLongFileName(): void
+    {
+        $reflectionClass = new \ReflectionClass(Cache::class);
+
+        $cache = $this->getTestObject();
+        $reflectionClass->getProperty('isWindows')->setValue($cache, true);
+
+        $lengthUsed = \strlen($cache->getCachePath() . $cache->getFilePrefix() . 'long__' . '.tmp');
+        $this->expectException(FileException::class);
+        $cache->getNewFileName('long', str_repeat('x', 259 - $lengthUsed));
+    }
+
+    #[Test]
     public function testDelete(): void
     {
         $cache = $this->getTestObject();
+
         $idk = 0;
-        for ($idx = 1; $idx <= 2; ++$idx) {
-            for ($idy = 1; $idy <= 2; ++$idy) {
+        for ($idx = 1; $idx <= 2; $idx++) {
+            for ($idy = 1; $idy <= 2; $idy++) {
                 $file[$idk] = $cache->getNewFileName((string) $idx, (string) $idy);
                 $this->assertNotFalse($file[$idk]);
                 \file_put_contents($file[$idk], '');
                 $this->assertTrue(\file_exists($file[$idk]));
-                ++$idk;
+                $idk++;
             }
         }
+
+        // Test deleting a non-existent cache item (for code coverage)
+        $cache->delete('5', '0');
 
         // delete a specific type/key pair
         $cache->delete('2', '1');

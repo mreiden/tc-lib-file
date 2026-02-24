@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Cache.php
  *
@@ -16,6 +18,8 @@
 
 namespace Com\Tecnick\File;
 
+use Com\Tecnick\File\Exception as FileException;
+
 /**
  * Com\Tecnick\Pdf\File\Cache
  *
@@ -29,6 +33,8 @@ namespace Com\Tecnick\File;
  */
 class Cache
 {
+    protected bool $isWindows;
+
     /**
      * Cache path
      *
@@ -44,28 +50,21 @@ class Cache
     /**
      * Set the file prefix (common name)
      *
-     * @param string $prefix Common prefix to be used for all cache files
+     * @param ?string $prefix Common prefix to be used for all cache files
+     *
+     * @throws FileException
+     * @throws \Random\RandomException
      */
-    public function __construct($prefix = null)
+    public function __construct(?string $prefix = null)
     {
+        $this->isWindows = \PHP_OS_FAMILY === 'Windows';
+
         $this->defineSystemCachePath();
         $this->setCachePath();
-        if ($prefix === null) {
-            $prefix = \rtrim(
-                \base64_encode(
-                    \pack(
-                        'H*',
-                        \md5(
-                            \uniqid(
-                                (string) \random_int(0, \mt_getrandmax()),
-                                true
-                            ),
-                        ),
-                    ),
-                ),
-                '=',
-            );
-        }
+        $prefix ??= \rtrim(
+            \base64_encode(\pack('H*', \md5(\uniqid((string) \random_int(0, \PHP_INT_MAX), true)))),
+            '=',
+        );
 
         self::$prefix = '_' . \preg_replace('/[^a-zA-Z0-9_\-]/', '', \strtr($prefix, '+/', '-_')) . '_';
     }
@@ -82,15 +81,18 @@ class Cache
      * Set the default cache directory path
      *
      * @param ?string $path Cache directory path; if null use the K_PATH_CACHE value
+     *
+     * @throws FileException
      */
     public function setCachePath(?string $path = null): void
     {
-        if (($path === null) || (\strpos($path, '://') !== false) || ! \is_writable($path)) {
-            /* @phpstan-ignore-next-line */
-            self::$path = K_PATH_CACHE;
-            return;
+        if ($path === null || str_contains($path, '://') || !\is_writable($path)) {
+            if (\defined('K_PATH_CACHE') && \is_string(K_PATH_CACHE) && $path !== K_PATH_CACHE) {
+                $this->setCachePath(K_PATH_CACHE);
+                return;
+            }
+            throw new FileException('Cache path is not writable.');
         }
-
         self::$path = $this->normalizePath($path);
     }
 
@@ -109,10 +111,26 @@ class Cache
      * @param string $key  File key (used to retrieve file from cache)
      *
      * @return string|false filename
+     *
+     * @throws FileException
+     * @throws \Random\RandomException
      */
     public function getNewFileName(string $type = 'tmp', string $key = '0'): string|bool
     {
-        return \tempnam(self::$path, self::$prefix . $type . '_' . $key . '_');
+        $filepath = self::$path . self::$prefix . "{$type}_{$key}_";
+        $length = \strlen($filepath);
+
+        // Windows limits the whole filepath to 258 chars (254 before adding '.tmp' suffix)
+        if ($this->isWindows && $length > 254) {
+            throw new FileException('Cache filepath exceeds maximum length of 258 on Windows.');
+        }
+        $numBytes = \max(0, \min(15, (int) \floor((254 - $length) / 2)));
+        if ($numBytes > 0) {
+            $filepath .= \bin2hex(\random_bytes($numBytes));
+        }
+        $filepath .= '.tmp';
+
+        return \file_exists($filepath) ? $this->getNewFileName($type, $key) : $filepath;
     }
 
     /**
@@ -131,13 +149,14 @@ class Cache
             }
         }
 
-        $path .= '*';
-        $files = \glob($path);
-        if (($files === []) || ($files === false)) {
+        $files = \glob($path . '*');
+        if (empty($files)) {
             return;
         }
 
-        \array_map('unlink', $files);
+        foreach ($files as $file) {
+            \unlink($file);
+        }
     }
 
     /**
@@ -165,7 +184,7 @@ class Cache
             return '';
         }
 
-        if (! \str_ends_with($rpath, '/')) {
+        if (!\str_ends_with($rpath, '/')) {
             $rpath .= '/';
         }
 
