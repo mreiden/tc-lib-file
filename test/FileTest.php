@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * FileTest.php
  *
@@ -16,7 +18,10 @@
 
 namespace Test;
 
+use Com\Tecnick\File\Exception as FileException;
+use Com\Tecnick\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 
 /**
  * File Color class test
@@ -31,11 +36,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class FileTest extends TestUtil
 {
-    protected function getTestObject(): \Com\Tecnick\File\File
+    protected function getTestObject(): File
     {
-        return new \Com\Tecnick\File\File();
+        return new File();
     }
 
+    #[Test]
     public function testFopenLocal(): void
     {
         $file = $this->getTestObject();
@@ -44,27 +50,31 @@ class FileTest extends TestUtil
         \fclose($handle);
     }
 
+    #[Test]
     public function testFopenLocalNonLocal(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
+        $this->expectException(FileException::class);
         $file->fopenLocal('http://www.example.com/test.txt', 'r');
     }
 
+    #[Test]
     public function testFopenLocalMissing(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
+        $this->expectException(FileException::class);
         $file->fopenLocal('/missing_error.txt', 'r');
     }
 
+    #[Test]
     public function testFopenLocalDoubleDot(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
+        $this->expectException(FileException::class);
         $file->fopenLocal('/tmp/invalid/../test.txt', 'r');
     }
 
+    #[Test]
     public function testfReadInt(): void
     {
         $file = $this->getTestObject();
@@ -78,17 +88,21 @@ class FileTest extends TestUtil
 
     public function testfReadIntReadFailureException(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
 
+        // Open stream in write-only mode to cause a read failure.
         $tmp = \tempnam(\sys_get_temp_dir(), 'tc');
         $handle = @\fopen($tmp, 'w');
         $this->assertNotFalse($handle);
+
+        $this->expectException(FileException::class);
+        // Reading a write-only handle causes exception.
         @$file->fReadInt($handle);
         \fclose($handle);
         \unlink($tmp);
     }
 
+    #[Test]
     public function testRfRead(): void
     {
         $file = $this->getTestObject();
@@ -101,10 +115,52 @@ class FileTest extends TestUtil
         \fclose($handle);
     }
 
+    #[Test]
+    public function testRfReadSlowDrip(): void
+    {
+        $numBytes = 4;
+        $url = \sprintf(
+            'https://httpbin.org/drip?duration=%d&numbytes=%d&code=200&delay=0.0',
+            0.2 * $numBytes,
+            $numBytes,
+        );
+        // Open url handle
+        $file = $this->getTestObject();
+        $handle = \fopen($url, 'rb');
+        $this->assertNotFalse($handle);
+        // Read from url
+        $res = $file->rfRead($handle, $numBytes);
+        $this->assertEquals($numBytes, \strlen($res));
+        $this->assertEquals(\str_repeat('*', $numBytes), $res);
+        // Close url handle
+        \fclose($handle);
+    }
+
+    #[Test]
+    public function testRfReadSlowDripFailedLastByte(): void
+    {
+        $numBytes = 4;
+        $url = \sprintf(
+            'https://httpbin.org/drip?duration=%d&numbytes=%d&code=200&delay=0.0',
+            0.2 * $numBytes,
+            $numBytes - 1,
+        );
+
+        $file = $this->getTestObject();
+        $handle = \fopen($url, 'rb');
+        $this->assertNotFalse($handle);
+
+        // Should fail to read last byte
+        $this->expectException(FileException::class);
+        $file->rfRead($handle, $numBytes);
+    }
+
+    #[Test]
     public function testRfReadException(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
+
+        $this->expectException(FileException::class);
         $file->rfRead(null, 2);
     }
     public function testRfReadClosedHandleException(): void
@@ -153,6 +209,7 @@ class FileTest extends TestUtil
      * @param string $file     File path
      * @param array{string, array<int, string>}  $expected Expected result
      */
+    #[Test]
     #[DataProvider('getAltFilePathsDataProvider')]
     public function testGetAltFilePaths(string $file, array $expected): void
     {
@@ -237,27 +294,43 @@ class FileTest extends TestUtil
         $this->assertSame($input, $result, 'Expected original path when SCRIPT_URI lacks scheme/host');
     }
 
+    #[Test]
+    public function testExceptionNoHost(): void
+    {
+        // Use scheme other than http, https, ftp and an empty host
+        $url = 'gopher:///non-existent';
+        $_SERVER['SCRIPT_URI'] = $url;
+
+        $file = $this->getTestObject();
+        $this->expectException(FileException::class);
+        $file->fileGetContents($url);
+    }
+
+    #[Test]
     public function testFileGetContentsMissingException(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
+        $this->expectException(FileException::class);
         $file->fileGetContents('missing.txt');
     }
 
+    #[Test]
     public function testFileGetContentsDoubleDotException(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
+        $this->expectException(FileException::class);
         $file->fileGetContents('/tmp/something/../test.txt');
     }
 
+    #[Test]
     public function testFileGetContentsForbiddenProtocolException(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
+        $this->expectException(FileException::class);
         $file->fileGetContents('phar://test.txt');
     }
 
+    #[Test]
     public function testFileGetContents(): void
     {
         $file = $this->getTestObject();
@@ -265,14 +338,16 @@ class FileTest extends TestUtil
         $this->assertEquals('<?php', \substr($res, 0, 5));
     }
 
+    #[Test]
     public function testFileGetContentsCurl(): void
     {
-        $this->bcExpectException('\\' . \Com\Tecnick\File\Exception::class);
         $file = $this->getTestObject();
         \define('FORCE_CURL', true);
+        $this->expectException(FileException::class);
         $file->fileGetContents('http://www.example.com/test.txt');
     }
 
+    #[Test]
     public function testHasDoubleDots(): void
     {
         $file = $this->getTestObject();
@@ -282,6 +357,7 @@ class FileTest extends TestUtil
         $this->assertFalse($res);
     }
 
+    #[Test]
     public function testHasForbiddenProtocol(): void
     {
         $file = $this->getTestObject();
