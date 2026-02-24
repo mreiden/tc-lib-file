@@ -46,8 +46,6 @@ class Byte
      * Initialize a new string to be processed
      *
      * @param string $str String (binary) from where to extract values
-     *
-     * @throws FileException
      */
     public function __construct(string $str)
     {
@@ -55,6 +53,8 @@ class Byte
         // avoid using \substr thousands of times for accessing 1-4 bytes at a time.
         /** @var array<int, int> $binary */
         $binary = \unpack('C*', $str);
+
+        // Unpack is 1-based instead of 0-based. Do not preserve keys to renumber starting at 0.
         $this->bytes = \SplFixedArray::fromArray($binary, false);
     }
 
@@ -69,6 +69,9 @@ class Byte
      */
     public function getByte(int $offset): int
     {
+        if (!isset($this->bytes[$offset])) {
+            throw new FileException('Attempted to read outside of the file bounds.');
+        }
         return $this->bytes[$offset] & 0xff;
     }
 
