@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Byte.php
  *
@@ -31,19 +33,27 @@ use Com\Tecnick\File\Exception as FileException;
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
  * @link      https://github.com/tecnickcom/tc-lib-file
  */
-readonly class Byte
+class Byte
 {
-    public \SplFixedArray $bytes;
+    /**
+     * SplFixedArray containing the binary string bytes as an array.
+     *
+     * @var \SplFixedArray<int>
+     */
+    public readonly \SplFixedArray $bytes;
 
     /**
      * Initialize a new string to be processed
      *
      * @param string $str String (binary) from where to extract values
+     *
+     * @throws FileException
      */
     public function __construct(string $str)
     {
         // Unpack string into an array of bytes and convert to SplFixedArray to
         // avoid using \substr thousands of times for accessing 1-4 bytes at a time.
+        /** @var array<int, int> $binary */
         $binary = \unpack('C*', $str);
         $this->bytes = \SplFixedArray::fromArray($binary, false);
     }
@@ -54,6 +64,8 @@ readonly class Byte
      * @param int $offset Point from where to read the data.
      *
      * @return int 8 bit value
+     *
+     * @throws FileException
      */
     public function getByte(int $offset): int
     {
@@ -125,6 +137,7 @@ readonly class Byte
      */
     public function getULong(int $offset): int
     {
+        // The uint32 value
         return (($this->bytes[$offset] << 24) & 0xff000000) |
             (($this->bytes[$offset + 1] << 16) & 0xff0000) |
             (($this->bytes[$offset + 2] << 8) & 0xff00) |
@@ -140,6 +153,7 @@ readonly class Byte
      */
     public function getLong(int $offset): int
     {
+        // The uint32 value
         $u_val =
             (($this->bytes[$offset] << 24) & 0xff000000) |
             (($this->bytes[$offset + 1] << 16) & 0xff0000) |

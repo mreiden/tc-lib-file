@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * ByteTest.php
  *
@@ -17,7 +19,9 @@
 namespace Test;
 
 use Com\Tecnick\File\Byte;
+use Com\Tecnick\File\Exception as FileException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 
 /**
  * Byte Color class test
@@ -44,6 +48,15 @@ class ByteTest extends TestUtil
         return new Byte($str);
     }
 
+    #[Test]
+    public function testExceptionGetByteNegative(): void
+    {
+        $byte = $this->getTestObject();
+        $this->expectException(FileException::class);
+        $byte->getByte(-1);
+    }
+
+    #[Test]
     #[DataProvider('getByteDataProvider')]
     public function testGetByte(int $offset, int $expected): void
     {
