@@ -179,4 +179,18 @@ class Byte
         $int16 = (((($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff)) ^ 0x8000) - 0x8000;
         return $int16 + ((($this->bytes[$offset + 2] << 8) & 0xff00) | ($this->bytes[$offset + 3] & 0xff)) / 65536.0;
     }
+
+    /**
+     * @param string $format
+     * @param string $string
+     * @param int $offset
+     *
+     * @return array<mixed>
+     *
+     * @throws FileException
+     */
+    public static function unpackOrThrow(string $format, string $string, int $offset = 0): array
+    {
+        return \unpack($format, $string, $offset) ?: throw new FileException('Unable to unpack data');
+    }
 }
