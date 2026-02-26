@@ -83,9 +83,6 @@ COMPOSER=$(PHP) -d "apc.enable_cli=0" $(shell which composer)
 # phpDocumentor executable file
 PHPDOC=$(shell which phpDocumentor)
 
-# phpstan version
-PHPSTANVER=2.1.40
-
 # --- MAKE TARGETS ---
 
 # Display general help about this command
@@ -141,7 +138,6 @@ clean:
 # Fix code style violations
 .PHONY: codefix
 codefix:
-	./vendor/bin/phpcbf --config-set ignore_non_auto_fixable_on_exit 1
 	./vendor/bin/phpcbf --ignore="\./vendor/" --standard=psr12 src test
 
 # Build a DEB package for Debian-like Linux distributions
@@ -174,8 +170,6 @@ endif
 deps: ensuretarget
 	rm -rf ./vendor/*
 	($(COMPOSER) install -vvv --no-interaction)
-	curl --silent --show-error --fail --location --output ./vendor/phpstan.phar https://github.com/phpstan/phpstan/releases/download/${PHPSTANVER}/phpstan.phar \
-	&& chmod +x ./vendor/phpstan.phar
 
 # Generate source code documentation
 .PHONY: doc
@@ -216,9 +210,9 @@ endif
 .PHONY: lint
 lint:
 	./vendor/bin/phpcs --standard=phpcs.xml
-	./vendor/bin/phpmd src text codesize,unusedcode,naming,design --exclude */vendor/*
-	./vendor/bin/phpmd test text unusedcode,naming,design --exclude */vendor/*
-	php -r 'exit((int)version_compare(PHP_MAJOR_VERSION, "7", ">"));' || ./vendor/phpstan.phar analyse
+	./vendor/bin/phpmd analyze --format text --ruleset codesize --ruleset unusedcode --ruleset naming --ruleset design --exclude ./vendor/ src
+	./vendor/bin/phpmd analyze --format text --ruleset unusedcode --ruleset naming --ruleset design --exclude ./vendor/ test
+	php -r 'exit((int)version_compare(PHP_MAJOR_VERSION, "7", ">"));' || ./vendor/bin/phpstan analyze
 
 # Run all tests and reports
 .PHONY: qa
@@ -227,7 +221,9 @@ qa: ensuretarget lint test report
 # Generate various reports
 .PHONY: report
 report: ensuretarget
-	./vendor/bin/pdepend --jdepend-xml=$(TARGETDIR)/report/dependencies.xml --summary-xml=$(TARGETDIR)/report/metrics.xml --jdepend-chart=$(TARGETDIR)/report/dependecies.svg --overview-pyramid=$(TARGETDIR)/report/overview-pyramid.svg --ignore=vendor ./src
+	./vendor/bin/pdepend --jdepend-xml=$(TARGETDIR)/report/dependencies.xml --summary-xml=$(TARGETDIR)/report/metrics.xml \
+		--jdepend-chart=$(TARGETDIR)/report/dependecies.svg --overview-pyramid=$(TARGETDIR)/report/overview-pyramid.svg \
+		--ignore=./vendor ./src
 	#./vendor/bartlett/php-compatinfo/bin/phpcompatinfo --no-ansi analyser:run src/ > $(TARGETDIR)/report/phpcompatinfo.txt
 
 # Build the RPM package for RedHat-like Linux distributions
@@ -278,4 +274,3 @@ uninstall:
 .PHONY: versionup
 versionup:
 	echo ${VERSION} | gawk -F. '{printf("%d.%d.%d\n",$$1,$$2,(($$3+1)));}' > VERSION
-
