@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace Com\Tecnick\File;
 
 use Com\Tecnick\File\Exception as FileException;
+use RangeException;
 
 /**
  * Com\Tecnick\File\Byte
@@ -59,18 +60,41 @@ class Byte
     }
 
     /**
+     * Verify that an offset + length read is within the string bounds.
+     *
+     * @param int $offset Read start position.
+     * @param int $length Number of bytes to read.
+     *
+     * @throws \RangeException if the read exceeds the string length.
+     */
+    private function checkBounds(int $offset, int $length): void
+    {
+        if (($offset + $length) > \strlen($this->str)) {
+            throw new \RangeException(
+                'Out-of-bounds read at offset '
+                . $offset
+                . ' (length '
+                . $length
+                . ', string length '
+                . \strlen($this->str)
+                . ')',
+            );
+        }
+    }
+
+    /**
      * Get BYTE from string (8-bit unsigned integer).
      *
      * @param int $offset Point from where to read the data.
      *
      * @return int 8 bit value
      *
-     * @throws FileException
+     * @throws RangeException if the requested read is out of bounds.
      */
     public function getByte(int $offset): int
     {
         if (!isset($this->bytes[$offset])) {
-            throw new FileException('Attempted to read outside of the file bounds.');
+            throw new RangeException('Attempted to read outside of the file bounds.');
         }
         return $this->bytes[$offset] & 0xff;
     }
@@ -81,6 +105,8 @@ class Byte
      * @param int $offset Point from where to read the data
      *
      * @return int 16 bit value
+     *
+     * @throws RangeException if the requested read is out of bounds.
      */
     public function getUShort(int $offset): int
     {
@@ -93,13 +119,15 @@ class Byte
      * @param int $offset Point from where to read the data.
      *
      * @return int 16 bit value
+     *
+     * @throws RangeException if the requested read is out of bounds.
      */
     public function getShort(int $offset): int
     {
         // The uint16 value
-        $u_val = (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
-        // Use bitwise two's complement uint16 to int16 formula
-        return ($u_val ^ 0x8000) - 0x8000;
+        $val = (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
+        // convert to signed 16-bit (two's complement)
+        return ($val ^ 0x8000) - 0x8000;
     }
 
     /**
@@ -109,6 +137,8 @@ class Byte
      * @param int $offset Point from where to read the data.
      *
      * @return int 16 bit value
+     *
+     * @throws \RangeException if the requested read is out of bounds.
      */
     public function getUFWord(int $offset): int
     {
@@ -122,6 +152,8 @@ class Byte
      * @param int $offset Point from where to read the data.
      *
      * @return int 16 bit value
+     *
+     * @throws \RangeException if the requested read is out of bounds.
      */
     public function getFWord(int $offset): int
     {
@@ -137,6 +169,8 @@ class Byte
      * @param int $offset Point from where to read the data
      *
      * @return int 32 bit value
+     *
+     * @throws \RangeException if the requested read is out of bounds.
      */
     public function getULong(int $offset): int
     {
@@ -153,17 +187,19 @@ class Byte
      * @param int $offset Point from where to read the data
      *
      * @return int 32 bit value
+     *
+     * @throws \RangeException if the requested read is out of bounds.
      */
     public function getLong(int $offset): int
     {
         // The uint32 value
-        $u_val =
+        $val =
             (($this->bytes[$offset] << 24) & 0xff000000) |
             (($this->bytes[$offset + 1] << 16) & 0xff0000) |
             (($this->bytes[$offset + 2] << 8) & 0xff00) |
             ($this->bytes[$offset + 3] & 0xff);
         // Use bitwise two's complement uint32 to int32 formula
-        return ($u_val ^ 0x80000000) - 0x80000000;
+        return ($val ^ 0x8000_0000) - 0x8000_0000;
     }
 
     /**
@@ -173,6 +209,8 @@ class Byte
      * A simplified equivalent version is to read an int32 and divide by 65536.
      *
      * @param int $offset Point from where to read the data.
+     *
+     * @throws \RangeException if the requested read is out of bounds.
      */
     public function getFixed(int $offset): float
     {

@@ -36,15 +36,36 @@ use PHPUnit\Framework\Attributes\Test;
  */
 class ByteTest extends TestUtil
 {
+    /**
+     * @throws \RangeException
+     */
     protected function getTestObject(): Byte
     {
         $str =
-            "\0\0\0\0" .
-            (\chr(1) . \chr(3) . \chr(7) . \chr(15)) .
-            (\chr(31) . \chr(63) . \chr(127) . \chr(255)) .
-            (\chr(254) . \chr(252) . \chr(248) . \chr(240)) .
-            (\chr(224) . \chr(192) . \chr(128) . \chr(0)) .
-            (\chr(255) . \chr(255) . \chr(255) . \chr(255));
+            \chr(0)
+            . \chr(0)
+            . \chr(0)
+            . \chr(0)
+            . \chr(1)
+            . \chr(3)
+            . \chr(7)
+            . \chr(15)
+            . \chr(31)
+            . \chr(63)
+            . \chr(127)
+            . \chr(255)
+            . \chr(254)
+            . \chr(252)
+            . \chr(248)
+            . \chr(240)
+            . \chr(224)
+            . \chr(192)
+            . \chr(128)
+            . \chr(0)
+            . \chr(255)
+            . \chr(255)
+            . \chr(255)
+            . \chr(255);
         return new Byte($str);
     }
 
@@ -56,6 +77,9 @@ class ByteTest extends TestUtil
         $byte->getByte(-1);
     }
 
+    /**
+     * @throws \RangeException
+     */
     #[Test]
     #[DataProvider('getByteDataProvider')]
     public function testGetByte(int $offset, int $expected): void
@@ -98,6 +122,9 @@ class ByteTest extends TestUtil
         ];
     }
 
+    /**
+     * @throws \RangeException
+     */
     #[DataProvider('getUShortDataProvider')]
     public function testGetUShort(int $offset, int $expected): void
     {
@@ -106,6 +133,9 @@ class ByteTest extends TestUtil
         $this->assertEquals($expected, $res);
     }
 
+    /**
+     * @throws \RangeException
+     */
     #[DataProvider('getUShortDataProvider')]
     public function testGetUFWord(int $offset, int $expected): void
     {
@@ -146,6 +176,9 @@ class ByteTest extends TestUtil
         ];
     }
 
+    /**
+     * @throws \RangeException
+     */
     #[DataProvider('getShortDataProvider')]
     public function testGetShort(int $offset, int $expected): void
     {
@@ -154,6 +187,9 @@ class ByteTest extends TestUtil
         $this->assertEquals($expected, $res);
     }
 
+    /**
+     * @throws \RangeException
+     */
     #[DataProvider('getShortDataProvider')]
     public function testGetFWord(int $offset, int $expected): void
     {
@@ -194,6 +230,9 @@ class ByteTest extends TestUtil
         ];
     }
 
+    /**
+     * @throws \RangeException
+     */
     #[DataProvider('getULongDataProvider')]
     public function testGetULong(int $offset, int $expected): void
     {
@@ -232,6 +271,9 @@ class ByteTest extends TestUtil
         ];
     }
 
+    /**
+     * @throws \RangeException
+     */
     #[DataProvider('getLongDataProvider')]
     public function testGetLong(int $offset, int $expected): void
     {
@@ -270,6 +312,9 @@ class ByteTest extends TestUtil
         ];
     }
 
+    /**
+     * @throws \RangeException
+     */
     #[DataProvider('getFixedDataProvider')]
     public function testGetFixed(int $offset, int|float $expected): void
     {
@@ -283,6 +328,7 @@ class ByteTest extends TestUtil
         $res2 = $byte->getLong($offset) / 65536.0;
         $this->assertEqualsWithDelta($expected, $res2, 1e-12);
     }
+
     /**
      * @return array<array{int, float}>
      */
@@ -305,5 +351,71 @@ class ByteTest extends TestUtil
             // negative value very close to zero (tiny fraction)
             [20, -1.52587890625e-5],
         ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Issue 7: out-of-bounds reads — always throw exceptions
+    // -------------------------------------------------------------------------
+
+    /**
+     * @throws \RangeException
+     */
+    public function testGetByteOutOfBoundsThrows(): void
+    {
+        $byte = new \Com\Tecnick\File\Byte('AB'); // 2 bytes
+        $this->expectException(\RangeException::class);
+        $this->expectExceptionMessageMatches('/Out-of-bounds read/');
+        $byte->getByte(10);
+    }
+
+    /**
+     * @throws \RangeException
+     */
+    public function testGetUShortOutOfBoundsThrows(): void
+    {
+        $byte = new \Com\Tecnick\File\Byte('A'); // 1 byte only
+        $this->expectException(\RangeException::class);
+        $byte->getUShort(0);
+    }
+
+    /**
+     * @throws \RangeException
+     */
+    public function testGetULongOutOfBoundsThrows(): void
+    {
+        $byte = new \Com\Tecnick\File\Byte('ABC'); // 3 bytes
+        $this->expectException(\RangeException::class);
+        $byte->getULong(0);
+    }
+
+    /**
+     * @throws \RangeException
+     */
+    public function testGetShortOutOfBoundsThrows(): void
+    {
+        $byte = new \Com\Tecnick\File\Byte('A');
+        $this->expectException(\RangeException::class);
+        $byte->getShort(0);
+    }
+
+    /**
+     * @throws \RangeException
+     */
+    public function testGetFixedOutOfBoundsThrows(): void
+    {
+        $byte = new \Com\Tecnick\File\Byte('AB'); // needs 4 bytes
+        $this->expectException(\RangeException::class);
+        $byte->getFixed(0);
+    }
+
+    /**
+     * @throws \RangeException
+     */
+    public function testInBoundsReadNoWarning(): void
+    {
+        // A read exactly at the boundary must not warn.
+        $byte = new \Com\Tecnick\File\Byte("\x00\x01");
+        $this->assertSame(0, $byte->getByte(0));
+        $this->assertSame(1, $byte->getByte(1));
     }
 }

@@ -48,7 +48,7 @@ class Dir
                 $dir = '';
             }
 
-            if (@\is_writable($dir . DIRECTORY_SEPARATOR . $name)) {
+            if (\is_writable($dir . DIRECTORY_SEPARATOR . $name)) {
                 $dir = $dir . DIRECTORY_SEPARATOR . $name;
                 break;
             }
