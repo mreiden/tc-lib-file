@@ -123,8 +123,6 @@ class File
      * Maximum size (in bytes) for remote file reads via HTTP(S) or FTP.
      * Reads exceeding this limit will throw an exception.
      * Default is 52428800 bytes (50 MB).
-     *
-     * @var int
      */
     protected int $maxRemoteSize = 52_428_800;
 
@@ -397,18 +395,22 @@ class File
      */
     private function createProgressCallback(int &$bytesRead): callable
     {
+        /**
+         * CURLOPT_NOPROGRESS must be set to 0 to make this function actually get called.
+         *
+         * The signature of the CURLOPT_XFERINFOFUNCTION is:
+         * int progress_callback(void *clientp,       // Curl Client (Handle)
+         *                       curl_off_t dltotal,  // Downloaded Total
+         *                       curl_off_t dlnow,    // Downloaded Now
+         *                       curl_off_t ultotal,  // Uploaded Total
+         *                       curl_off_t ulnow);   // Uploaded Now
+         */
         $maxSize = $this->maxRemoteSize;
-        return static function ($_curlResource, $_downloadSize, $downloaded, $_uploadSize, $_uploaded) use (
-            &$bytesRead,
-            $maxSize,
-        ) {
-            // @phpstan-ignore-next-line
-            $bytesRead = (int) $downloaded;
-            if ($bytesRead > $maxSize) {
-                // Returning non-zero aborts the transfer
-                return 1;
-            }
-            return 0;
+        return static function (\CurlHandle $_curlResource, int $_downloadSize, int $downloaded) use (&$bytesRead, $maxSize) {
+            $bytesRead = $downloaded;
+
+            // Returning non-zero aborts the transfer
+            return ($bytesRead > $maxSize) ? 1 : CURLE_OK;
         };
     }
 
@@ -544,23 +546,23 @@ class File
 
         $openBasedir = \ini_get('open_basedir');
         if ($openBasedir === false || $openBasedir === '') {
-            $curlopts[CURLOPT_FOLLOWLOCATION] = true;
+            $curlopts[\CURLOPT_FOLLOWLOCATION] = true;
         }
 
         $curlopts = \array_replace($curlopts, $this->defaultCurlOpts);
         $curlopts = \array_replace($curlopts, $this->curlopts);
         $curlopts = \array_replace($curlopts, $this->fixedCurlOpts);
-        $curlopts[CURLOPT_URL] = $url;
+        $curlopts[\CURLOPT_URL] = $url;
 
         // Use a progress callback to enforce the max remote size limit
         $bytesRead = 0;
-        $curlopts[CURLOPT_NOPROGRESS] = false;
-        $curlopts[CURLOPT_PROGRESSFUNCTION] = $this->createProgressCallback($bytesRead);
+        $curlopts[\CURLOPT_NOPROGRESS] = false;
+        $curlopts[\CURLOPT_XFERINFOFUNCTION] = $this->createProgressCallback($bytesRead);
 
         $invalidRedirect = false;
-        $maxRedirects = (int) ($curlopts[CURLOPT_MAXREDIRS] ?? 0);
+        $maxRedirects = \is_numeric($curlopts[\CURLOPT_MAXREDIRS] ?? null) ? (int) $curlopts[\CURLOPT_MAXREDIRS] : 0;
         if ($maxRedirects !== 0) {
-            $curlopts[CURLOPT_HEADERFUNCTION] = $this->createRedirectValidationCallback($invalidRedirect, $url);
+            $curlopts[\CURLOPT_HEADERFUNCTION] = $this->createRedirectValidationCallback($invalidRedirect, $url);
         }
 
         \curl_setopt_array($curlHandle, $curlopts);
@@ -628,7 +630,7 @@ class File
         }
 
         $resolved = \realpath($file);
-        if (\is_string($resolved) && $resolved !== '') {
+        if (\is_string($resolved)) {
             return $resolved;
         }
 
@@ -638,12 +640,12 @@ class File
             }
 
             $resolvedBase = \realpath($baseDir);
-            if (!\is_string($resolvedBase) || $resolvedBase === '') {
+            if (!\is_string($resolvedBase)) {
                 continue;
             }
 
             $resolved = \realpath($resolvedBase . \DIRECTORY_SEPARATOR . $file);
-            if (\is_string($resolved) && $resolved !== '') {
+            if (\is_string($resolved)) {
                 return $resolved;
             }
         }
@@ -963,7 +965,7 @@ class File
      *
      * @return bool true if the path is relative
      */
-    protected function hasDoubleDots(string $path): bool
+    public function hasDoubleDots(string $path): bool
     {
         return \str_contains(\str_ireplace('%2E', '.', \html_entity_decode($path, ENT_QUOTES, 'UTF-8')), '..');
     }

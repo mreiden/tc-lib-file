@@ -38,7 +38,7 @@ class Compression
     private static int $level = 6;
 
     /**
-     * @param int<0,9> $level
+     * @param int $level
      *
      * @return int
      *

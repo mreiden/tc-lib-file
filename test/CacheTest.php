@@ -23,6 +23,7 @@ use Com\Tecnick\File\Exception as FileException;
 //use PHPUnit\Framework\Attributes\PreserveGlobalState;
 //use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
+use Random\RandomException;
 
 /**
  * Unit Test
@@ -121,7 +122,8 @@ class CacheTest extends TestUtil
     }
 
     /**
-     * @throws \Com\Tecnick\File\Exception
+     * @throws FileException
+     * @throws RandomException
      */
     #[Test]
     public function testGetNewFileName(): void
@@ -132,8 +134,7 @@ class CacheTest extends TestUtil
         $val = $cache->getNewFileName('tst', '0123');
         $this->assertNotFalse($val);
 
-        $this->bcAssertMatchesRegularExpression('/_1_2-a-B_c_tst_0123_/', $val);
-        \unlink($val);
+        $this->assertMatchesRegularExpression('/_1_2-a-B_c_tst_0123_/', $val);
     }
 
     #[Test]
@@ -168,7 +169,8 @@ class CacheTest extends TestUtil
     }
 
     /**
-     * @throws \Com\Tecnick\File\Exception
+     * @throws FileException
+     * @throws RandomException
      */
     #[Test]
     public function testDelete(): void
@@ -216,7 +218,7 @@ class CacheTest extends TestUtil
     }
 
     /**
-     * @throws \Com\Tecnick\File\Exception
+     * @throws FileException
      */
     public function testKeyOnlyDeletesAll(): void
     {
@@ -233,7 +235,7 @@ class CacheTest extends TestUtil
     }
 
     /**
-     * @throws \Com\Tecnick\File\Exception
+     * @throws FileException
      */
     public function testDeleteNonExistingPatterns(): void
     {
@@ -290,11 +292,12 @@ class CacheTest extends TestUtil
     }
 
     // -------------------------------------------------------------------------
-    // Issue 4: glob-injection sanitisation in delete()
+    // Issue 4: glob-injection sanitization in delete()
     // -------------------------------------------------------------------------
 
     /**
-     * @throws \Com\Tecnick\File\Exception
+     * @throws FileException
+     * @throws RandomException
      */
     public function testDeleteGlobCharsInTypeSanitised(): void
     {
@@ -316,7 +319,7 @@ class CacheTest extends TestUtil
     }
 
     /**
-     * @throws \Com\Tecnick\File\Exception
+     * @throws FileException
      */
     public function testDeleteGlobCharsInKeySanitised(): void
     {
@@ -362,7 +365,7 @@ class CacheTest extends TestUtil
     }
 
     /**
-     * @throws \Com\Tecnick\File\Exception
+     * @throws FileException
      */
     public function testDeleteOlderThan(): void
     {

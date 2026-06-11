@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace Com\Tecnick\File;
 
 use Com\Tecnick\File\Exception as FileException;
+use Random\RandomException;
 
 /**
  * Com\Tecnick\Pdf\File\Cache
@@ -40,8 +41,6 @@ class Cache
 
     /**
      * Cache path (per-instance)
-     *
-     * @var string
      */
     protected string $path = '';
 
@@ -56,7 +55,7 @@ class Cache
      * @param ?string $prefix Common prefix to be used for all cache files
      *
      *  @throws FileException
-     *  @throws \Random\RandomException
+     *  @throws RandomException
      */
     public function __construct(?string $prefix = null)
     {
@@ -97,7 +96,7 @@ class Cache
             }
             throw new FileException('Cache path is not writable.');
         }
-        self::$path = $this->normalizePath($path);
+        $this->path = $this->normalizePath($path);
     }
 
     /**
@@ -118,11 +117,11 @@ class Cache
      * @return string|false filename
      *
      * @throws FileException
-     * @throws \Random\RandomException
+     * @throws RandomException
      */
     public function getNewFileName(string $type = 'tmp', string $key = '0'): string|bool
     {
-        $filepath = self::$path . self::$prefix . "{$type}_{$key}_";
+        $filepath = $this->path . $this->prefix . "{$type}_{$key}_";
         $length = \strlen($filepath);
 
         // Windows limits the whole filepath to 258 chars (254 before adding '.tmp' suffix)
