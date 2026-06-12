@@ -89,7 +89,7 @@ class Cache
      */
     public function setCachePath(?string $path = null): void
     {
-        if ($path === null || str_contains($path, '://') || !\is_writable($path)) {
+        if ($path === null || \str_contains($path, '://') || !\is_writable($path)) {
             if (\defined('K_PATH_CACHE') && \is_string(K_PATH_CACHE) && $path !== K_PATH_CACHE) {
                 $this->setCachePath(K_PATH_CACHE);
                 return;

@@ -55,9 +55,9 @@ class DirTest extends TestUtil
     public static function getAltFilePathsDataProvider(): array
     {
         $paths = [['', '/src/'], ['missing', '/'], ['src', '/src/']];
-        if (DIRECTORY_SEPARATOR !== '/') {
+        if (\DIRECTORY_SEPARATOR !== '/') {
             foreach ($paths as &$path) {
-                $path[1] = \str_replace('/', preg_quote(DIRECTORY_SEPARATOR, '#'), $path[1]);
+                $path[1] = \str_replace('/', \preg_quote(\DIRECTORY_SEPARATOR, '#'), $path[1]);
             }
         }
 

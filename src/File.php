@@ -43,12 +43,12 @@ class File
      * @var array<int, bool|int|string> cURL options.
      */
     protected const CURLOPT_DEFAULT = [
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_MAXREDIRS => 0,
-        CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-        CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-        CURLOPT_TIMEOUT => 30,
-        CURLOPT_USERAGENT => 'tc-lib-file',
+        \CURLOPT_CONNECTTIMEOUT => 5,
+        \CURLOPT_MAXREDIRS => 0,
+        \CURLOPT_PROTOCOLS => \CURLPROTO_HTTPS | \CURLPROTO_HTTP,
+        \CURLOPT_REDIR_PROTOCOLS => \CURLPROTO_HTTPS | \CURLPROTO_HTTP,
+        \CURLOPT_TIMEOUT => 30,
+        \CURLOPT_USERAGENT => 'tc-lib-file',
     ];
 
     /**
@@ -57,10 +57,10 @@ class File
      * @var array<int, bool|int|string> cURL options.
      */
     protected const CURLOPT_FIXED = [
-        CURLOPT_FAILONERROR => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_SSL_VERIFYPEER => true,
+        \CURLOPT_FAILONERROR => true,
+        \CURLOPT_RETURNTRANSFER => true,
+        \CURLOPT_SSL_VERIFYHOST => 2,
+        \CURLOPT_SSL_VERIFYPEER => true,
     ];
 
     /**
@@ -374,7 +374,7 @@ class File
      */
     private function withoutPhpWarnings(callable $callback): mixed
     {
-        \set_error_handler(static fn(): bool => true, E_WARNING | E_NOTICE | E_USER_WARNING | E_USER_NOTICE);
+        \set_error_handler(static fn(): bool => true, \E_WARNING | \E_NOTICE | \E_USER_WARNING | \E_USER_NOTICE);
 
         try {
             return $callback();
@@ -410,7 +410,7 @@ class File
             $bytesRead = $downloaded;
 
             // Returning non-zero aborts the transfer
-            return ($bytesRead > $maxSize) ? 1 : CURLE_OK;
+            return ($bytesRead > $maxSize) ? 1 : \CURLE_OK;
         };
     }
 
@@ -500,7 +500,7 @@ class File
                 return 0;
             }
 
-            $effectiveUrl = (string) \curl_getinfo($curlResource, CURLINFO_EFFECTIVE_URL);
+            $effectiveUrl = (string) \curl_getinfo($curlResource, \CURLINFO_EFFECTIVE_URL);
             $baseUrl = $effectiveUrl !== '' ? $effectiveUrl : $initialUrl;
 
             $redirectUrl = $this->buildRedirectUrl($location, $baseUrl);
@@ -967,7 +967,7 @@ class File
      */
     public function hasDoubleDots(string $path): bool
     {
-        return \str_contains(\str_ireplace('%2E', '.', \html_entity_decode($path, ENT_QUOTES, 'UTF-8')), '..');
+        return \str_contains(\str_ireplace('%2E', '.', \html_entity_decode($path, \ENT_QUOTES, 'UTF-8')), '..');
     }
 
     /**

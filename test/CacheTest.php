@@ -91,7 +91,7 @@ class CacheTest extends TestUtil
         $cache = $this->getTestObject();
         $cachePath = $cache->getCachePath();
 
-        $systemRoot = realpath('/');
+        $systemRoot = \realpath('/');
         if ($systemRoot === false) {
             throw new FileException("Cannot find realpath of '/'");
         }
@@ -103,7 +103,7 @@ class CacheTest extends TestUtil
         $this->assertEquals($cachePath, $cache->getCachePath());
 
         // Test mandatory trailing slash added
-        $path = sys_get_temp_dir();
+        $path = \sys_get_temp_dir();
         $cache->setCachePath($path);
         $this->assertEquals($path . '/', $cache->getCachePath());
 
@@ -165,7 +165,7 @@ class CacheTest extends TestUtil
 
         $lengthUsed = \strlen($cache->getCachePath() . $cache->getFilePrefix() . 'long__' . '.tmp');
         $this->expectException(FileException::class);
-        $cache->getNewFileName('long', str_repeat('x', 259 - $lengthUsed));
+        $cache->getNewFileName('long', \str_repeat('x', 259 - $lengthUsed));
     }
 
     /**
@@ -180,13 +180,13 @@ class CacheTest extends TestUtil
         $idk = 0;
         /** @var array<int, string> $file */
         $file = [];
-        for ($idx = 1; $idx <= 2; $idx++) {
-            for ($idy = 1; $idy <= 2; $idy++) {
+        for ($idx = 1; $idx <= 2; ++$idx) {
+            for ($idy = 1; $idy <= 2; ++$idy) {
                 $file[$idk] = $cache->getNewFileName((string) $idx, (string) $idy);
                 $this->assertNotFalse($file[$idk]);
                 \file_put_contents($file[$idk], '');
                 $this->assertTrue(\file_exists($file[$idk]));
-                $idk++;
+                ++$idk;
             }
         }
 

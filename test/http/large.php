@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * large.php - Test HTTP endpoint that returns a large body.
  *

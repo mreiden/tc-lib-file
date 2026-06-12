@@ -101,7 +101,7 @@ class FileTest extends TestUtil
 
         // Wait until the server is accepting connections (up to 5 s).
         $ready = false;
-        for ($i = 0; $i < 50; $i++) {
+        for ($i = 0; $i < 50; ++$i) {
             \set_error_handler(static fn(): bool => true);
             $conn = \fsockopen('127.0.0.1', self::$serverPort, $errno, $errstr, 0.1);
             \restore_error_handler();
@@ -697,9 +697,9 @@ class FileTest extends TestUtil
         $ref = new \ReflectionClassConstant(File::class, 'CURLOPT_DEFAULT');
         /** @var array<int, mixed> $opts */
         $opts = $ref->getValue();
-        $this->assertArrayHasKey(CURLOPT_REDIR_PROTOCOLS, $opts);
+        $this->assertArrayHasKey(\CURLOPT_REDIR_PROTOCOLS, $opts);
         // Only HTTP/HTTPS allowed for redirects — no FTP.
-        $this->assertSame(CURLPROTO_HTTPS | CURLPROTO_HTTP, $opts[CURLOPT_REDIR_PROTOCOLS] ?? null);
+        $this->assertSame(\CURLPROTO_HTTPS | \CURLPROTO_HTTP, $opts[\CURLOPT_REDIR_PROTOCOLS] ?? null);
     }
 
     // -------------------------------------------------------------------------
@@ -713,11 +713,11 @@ class FileTest extends TestUtil
         /** @var array<int, mixed> $opts */
         $opts = $ref->getValue();
         // SSL verification must be pinned in FIXED to prevent override
-        $this->assertArrayHasKey(CURLOPT_SSL_VERIFYHOST, $opts);
-        $this->assertArrayHasKey(CURLOPT_SSL_VERIFYPEER, $opts);
+        $this->assertArrayHasKey(\CURLOPT_SSL_VERIFYHOST, $opts);
+        $this->assertArrayHasKey(\CURLOPT_SSL_VERIFYPEER, $opts);
         // Verify strict verification is enforced
-        $this->assertSame(2, $opts[CURLOPT_SSL_VERIFYHOST] ?? null);
-        $this->assertTrue(($opts[CURLOPT_SSL_VERIFYPEER] ?? null) === true);
+        $this->assertSame(2, $opts[\CURLOPT_SSL_VERIFYHOST] ?? null);
+        $this->assertTrue(($opts[\CURLOPT_SSL_VERIFYPEER] ?? null) === true);
     }
 
     #[Test]
@@ -726,8 +726,8 @@ class FileTest extends TestUtil
         $testObj = $this->getTestObject();
         // Set custom curl options that try to disable SSL verification
         $testObj->setCurlOpts([
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0,
+            \CURLOPT_SSL_VERIFYPEER => false,
+            \CURLOPT_SSL_VERIFYHOST => 0,
         ]);
 
         // Get the fixed options to verify they are unaffected
@@ -737,8 +737,8 @@ class FileTest extends TestUtil
 
         // Verify fixed options still have strict verification enabled
         // (they should override any custom options due to merge order in getUrlData)
-        $this->assertSame(2, $fixedOpts[CURLOPT_SSL_VERIFYHOST] ?? null);
-        $this->assertTrue(($fixedOpts[CURLOPT_SSL_VERIFYPEER] ?? null) === true);
+        $this->assertSame(2, $fixedOpts[\CURLOPT_SSL_VERIFYHOST] ?? null);
+        $this->assertTrue(($fixedOpts[\CURLOPT_SSL_VERIFYPEER] ?? null) === true);
     }
 
     // -------------------------------------------------------------------------
@@ -930,7 +930,7 @@ class FileTest extends TestUtil
         }
 
         $withoutWarnings = static function (callable $callback): mixed {
-            \set_error_handler(static fn(): bool => true, E_WARNING | E_NOTICE | E_USER_WARNING | E_USER_NOTICE);
+            \set_error_handler(static fn(): bool => true, \E_WARNING | \E_NOTICE | \E_USER_WARNING | \E_USER_NOTICE);
 
             try {
                 return $callback();
@@ -975,7 +975,7 @@ class FileTest extends TestUtil
         }
 
         $withoutWarnings = static function (callable $callback): mixed {
-            \set_error_handler(static fn(): bool => true, E_WARNING | E_NOTICE | E_USER_WARNING | E_USER_NOTICE);
+            \set_error_handler(static fn(): bool => true, \E_WARNING | \E_NOTICE | \E_USER_WARNING | \E_USER_NOTICE);
 
             try {
                 return $callback();
@@ -1250,7 +1250,7 @@ class FileTest extends TestUtil
         }
 
         $file = new File(['127.0.0.1']);
-        $file->setCurlOpts([CURLOPT_MAXREDIRS => 3]);
+        $file->setCurlOpts([\CURLOPT_MAXREDIRS => 3]);
 
         $result = $file->getUrlData('http://127.0.0.1:' . self::$serverPort . '/redirect.php?to=/empty.php');
         $this->assertSame('', $result);
@@ -1271,7 +1271,7 @@ class FileTest extends TestUtil
         }
 
         $file = new File(['127.0.0.1']);
-        $file->setCurlOpts([CURLOPT_MAXREDIRS => 3]);
+        $file->setCurlOpts([\CURLOPT_MAXREDIRS => 3]);
 
         $result = $file->getUrlData('http://127.0.0.1:' . self::$serverPort . '/redirect.php?to=http://example.com/');
         $this->assertFalse($result);
