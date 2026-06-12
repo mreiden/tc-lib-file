@@ -19,9 +19,7 @@ declare(strict_types=1);
 namespace Com\Tecnick\File;
 
 use Com\Tecnick\File\Exception as FileException;
-use OutOfBoundsException;
 use RangeException;
-use SplFixedArray;
 
 /**
  * Com\Tecnick\File\Byte
@@ -39,28 +37,39 @@ use SplFixedArray;
 readonly class Byte
 {
     /**
-     * SplFixedArray containing the binary string bytes as an array.
-     *
-     * @var SplFixedArray<int>
+     * Length of the binary string in bytes.
      */
-    public SplFixedArray $bytes;
+    private int $length;
 
     /**
-     * Initialize a new string to be processed
+     * Initialize a new string to be processed.
+     *
+     * Values are read in place via \ord() + bitwise math: no per-read unpack()
+     * call and no byte-table copy, so memory stays at the size of the string.
      *
      * @param string $str String (binary) from where to extract values
      */
-    public function __construct(string $str)
-    {
-        // Unpack string into an array of bytes and convert to SplFixedArray to
-        // avoid using \substr thousands of times for accessing 1-4 bytes at a time.
-        /** @var array<int, int> $binary */
-        $binary = \unpack('C*', $str);
-
-        // Unpack is 1-based instead of 0-based. Do not preserve keys to renumber starting at 0.
-        $this->bytes = SplFixedArray::fromArray($binary, false);
+    public function __construct(
+        /**
+         * Binary string to process
+         */
+        protected string $str,
+    ) {
+        $this->length = \strlen($str);
     }
 
+    /**
+     * Throw for a read that failed its bounds check.
+     *
+     * @param int $offset Read start position.
+     * @param int $length Number of bytes requested.
+     *
+     * @throws RangeException always.
+     */
+    private function throwOutOfBounds(int $offset, int $length): never
+    {
+        throw new RangeException("Out-of-bounds read at offset $offset (length $length, string length $this->length)");
+    }
 
     /**
      * Get BYTE from string (8-bit unsigned integer).
@@ -73,12 +82,11 @@ readonly class Byte
      */
     public function getByte(int $offset): int
     {
-        try {
-            return $this->bytes[$offset] & 0xff;
-
-        } catch(OutOfBoundsException) {
-            throw new RangeException("Out-of-bounds read at offset $offset (length 1)");
+        if ($offset < 0 || $offset >= $this->length) {
+            $this->throwOutOfBounds($offset, 1);
         }
+
+        return \ord($this->str[$offset]);
     }
 
     /**
@@ -92,12 +100,11 @@ readonly class Byte
      */
     public function getUShort(int $offset): int
     {
-        try {
-            return (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
-
-        } catch(OutOfBoundsException) {
-            throw new RangeException("Out-of-bounds read at offset $offset (length 2)");
+        if ($offset < 0 || $offset > $this->length - 2) {
+            $this->throwOutOfBounds($offset, 2);
         }
+
+        return (\ord($this->str[$offset]) << 8) | \ord($this->str[$offset + 1]);
     }
 
     /**
@@ -111,13 +118,14 @@ readonly class Byte
      */
     public function getShort(int $offset): int
     {
-        try {
-            // The uint16 value
-            $val = (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
-        } catch(OutOfBoundsException) {
-            throw new RangeException("Out-of-bounds read at offset $offset (length 2)");
+        if ($offset < 0 || $offset > $this->length - 2) {
+            $this->throwOutOfBounds($offset, 2);
         }
-        // convert to signed 16-bit (two's complement)
+
+        // The uint16 value
+        $val = (\ord($this->str[$offset]) << 8) | \ord($this->str[$offset + 1]);
+
+        // Use bitwise two's complement uint16 to int16 formula
         return ($val ^ 0x8000) - 0x8000;
     }
 
@@ -133,12 +141,11 @@ readonly class Byte
      */
     public function getUFWord(int $offset): int
     {
-        try {
-            return (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
-
-        } catch(OutOfBoundsException) {
-            throw new RangeException("Out-of-bounds read at offset $offset (length 2)");
+        if ($offset < 0 || $offset > $this->length - 2) {
+            $this->throwOutOfBounds($offset, 2);
         }
+
+        return (\ord($this->str[$offset]) << 8) | \ord($this->str[$offset + 1]);
     }
 
     /**
@@ -153,15 +160,15 @@ readonly class Byte
      */
     public function getFWord(int $offset): int
     {
-        try {
-            // The uint16 value
-            $val = (($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff);
-            // Use bitwise two's complement uint16 to int16 formula
-            return ($val ^ 0x8000) - 0x8000;
-
-        } catch(OutOfBoundsException) {
-            throw new RangeException("Out-of-bounds read at offset $offset (length 2)");
+        if ($offset < 0 || $offset > $this->length - 2) {
+            $this->throwOutOfBounds($offset, 2);
         }
+
+        // The uint16 value
+        $val = (\ord($this->str[$offset]) << 8) | \ord($this->str[$offset + 1]);
+
+        // Use bitwise two's complement uint16 to int16 formula
+        return ($val ^ 0x8000) - 0x8000;
     }
 
     /**
@@ -175,16 +182,14 @@ readonly class Byte
      */
     public function getULong(int $offset): int
     {
-        try {
-            // The uint32 value
-            return (($this->bytes[$offset] << 24) & 0xff000000) |
-                (($this->bytes[$offset + 1] << 16) & 0xff0000) |
-                (($this->bytes[$offset + 2] << 8) & 0xff00) |
-                ($this->bytes[$offset + 3] & 0xff);
-
-        } catch(OutOfBoundsException) {
-            throw new RangeException("Out-of-bounds read at offset $offset (length 4)");
+        if ($offset < 0 || $offset > $this->length - 4) {
+            $this->throwOutOfBounds($offset, 4);
         }
+
+        return (\ord($this->str[$offset]) << 24)
+            | (\ord($this->str[$offset + 1]) << 16)
+            | (\ord($this->str[$offset + 2]) << 8)
+            | \ord($this->str[$offset + 3]);
     }
 
     /**
@@ -198,20 +203,18 @@ readonly class Byte
      */
     public function getLong(int $offset): int
     {
-        try {
-            // The uint32 value
-            $val =
-                (($this->bytes[$offset] << 24) & 0xff000000) |
-                (($this->bytes[$offset + 1] << 16) & 0xff0000) |
-                (($this->bytes[$offset + 2] << 8) & 0xff00) |
-                ($this->bytes[$offset + 3] & 0xff);
-
-            // Use bitwise two's complement uint32 to int32 formula
-            return ($val ^ 0x8000_0000) - 0x8000_0000;
-
-        } catch(OutOfBoundsException) {
-            throw new RangeException("Out-of-bounds read at offset $offset (length 4)");
+        if ($offset < 0 || $offset > $this->length - 4) {
+            $this->throwOutOfBounds($offset, 4);
         }
+
+        // The uint32 value
+        $val = (\ord($this->str[$offset]) << 24)
+            | (\ord($this->str[$offset + 1]) << 16)
+            | (\ord($this->str[$offset + 2]) << 8)
+            | \ord($this->str[$offset + 3]);
+
+        // Use bitwise two's complement uint32 to int32 formula
+        return ($val ^ 0x8000_0000) - 0x8000_0000;
     }
 
     /**
@@ -226,13 +229,15 @@ readonly class Byte
      */
     public function getFixed(int $offset): float
     {
-        try {
-            $int16 = (((($this->bytes[$offset] << 8) & 0xff00) | ($this->bytes[$offset + 1] & 0xff)) ^ 0x8000) - 0x8000;
-            return $int16 + ((($this->bytes[$offset + 2] << 8) & 0xff00) | ($this->bytes[$offset + 3] & 0xff)) / 65536.0;
-
-        } catch(OutOfBoundsException) {
-            throw new RangeException("Out-of-bounds read at offset $offset (length 4)");
+        if ($offset < 0 || $offset > $this->length - 4) {
+            $this->throwOutOfBounds($offset, 4);
         }
+
+        // The int16 integer part
+        $int16 = (((\ord($this->str[$offset]) << 8) | \ord($this->str[$offset + 1])) ^ 0x8000) - 0x8000;
+
+        // Add the uint16 fractional part
+        return $int16 + ((\ord($this->str[$offset + 2]) << 8) | \ord($this->str[$offset + 3])) / 65536.0;
     }
 
     /**
