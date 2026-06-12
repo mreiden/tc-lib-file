@@ -406,7 +406,11 @@ class File
          *                       curl_off_t ulnow);   // Uploaded Now
          */
         $maxSize = $this->maxRemoteSize;
-        return static function (\CurlHandle $_curlResource, int $_downloadSize, int $downloaded) use (&$bytesRead, $maxSize) {
+        return static function (
+            \CurlHandle $_curlResource,
+            int $_downloadSize,
+            int $downloaded
+        ) use (&$bytesRead, $maxSize): int {
             $bytesRead = $downloaded;
 
             // Returning non-zero aborts the transfer

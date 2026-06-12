@@ -225,7 +225,6 @@ class CacheTest extends TestUtil
         $cache = $this->getTestObject();
         $file = $cache->getNewFileName('foo', 'bar');
         $this->assertNotFalse($file);
-        $this->assertIsString($file);
         \file_put_contents($file, '');
         $this->assertTrue(\file_exists($file));
 
@@ -242,7 +241,6 @@ class CacheTest extends TestUtil
         $cache = $this->getTestObject();
         $file = $cache->getNewFileName('foo', 'bar');
         $this->assertNotFalse($file);
-        $this->assertIsString($file);
         \file_put_contents($file, '');
         $this->assertTrue(\file_exists($file));
 

@@ -114,12 +114,12 @@ class Cache
      * @param string $type Type of file
      * @param string $key  File key (used to retrieve file from cache)
      *
-     * @return string|false filename
+     * @return string filename
      *
      * @throws FileException
      * @throws RandomException
      */
-    public function getNewFileName(string $type = 'tmp', string $key = '0'): string|bool
+    public function getNewFileName(string $type = 'tmp', string $key = '0'): string
     {
         $filepath = $this->path . $this->prefix . "{$type}_{$key}_";
         $length = \strlen($filepath);

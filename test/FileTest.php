@@ -475,7 +475,7 @@ class FileTest extends TestUtil
 
         $rfm = new \ReflectionMethod($testObj, 'getAltUrlFromPath');
         $input = 'some/path.txt';
-        $result = (string) $rfm->invoke($testObj, $input);
+        $result = $rfm->invoke($testObj, $input);
         $this->assertSame($input, $result, 'Expected original path when SCRIPT_URI lacks scheme/host');
     }
 
@@ -500,7 +500,7 @@ class FileTest extends TestUtil
 
         $rfm = new \ReflectionMethod($testObj, 'getAltUrlFromPath');
         $input = 'data/file.txt';
-        $result = (string) $rfm->invoke($testObj, $input);
+        $result = $rfm->invoke($testObj, $input);
         $this->assertSame($input, $result, 'Spoofed SCRIPT_URI host must not be used to build a URL');
     }
 
@@ -511,7 +511,7 @@ class FileTest extends TestUtil
         $_SERVER['SCRIPT_URI'] = 'https://myapp.example.com/app/script.php';
 
         $rfm = new \ReflectionMethod($testObj, 'getAltUrlFromPath');
-        $result = (string) $rfm->invoke($testObj, 'data/file.txt');
+        $result = $rfm->invoke($testObj, 'data/file.txt');
         $this->assertSame('https://myapp.example.com/data/file.txt', $result);
     }
 
@@ -755,7 +755,7 @@ class FileTest extends TestUtil
 
         $rfm = new \ReflectionMethod($testObj, 'getAltMissingUrlProtocol');
         $input = '//evil.internal/steal';
-        $result = (string) $rfm->invoke($testObj, $input);
+        $result = $rfm->invoke($testObj, $input);
         // Without a trusted host the path must come back unchanged (decoded only).
         $this->assertSame(
             \htmlspecialchars_decode($input),
@@ -772,7 +772,7 @@ class FileTest extends TestUtil
         $_SERVER['HTTPS'] = 'on';
 
         $rfm = new \ReflectionMethod($testObj, 'getAltMissingUrlProtocol');
-        $result = (string) $rfm->invoke($testObj, '//myapp.example.com/path/file.txt');
+        $result = $rfm->invoke($testObj, '//myapp.example.com/path/file.txt');
         $this->assertSame('https://myapp.example.com/path/file.txt', $result);
     }
 
@@ -787,7 +787,7 @@ class FileTest extends TestUtil
 
         $rfm = new \ReflectionMethod($testObj, 'getAltPathFromUrl');
         $url = 'http://attacker.internal/secret';
-        $result = (string) $rfm->invoke($testObj, $url);
+        $result = $rfm->invoke($testObj, $url);
         $this->assertSame($url, $result, 'Spoofed host must not be used to build a local path');
     }
 
@@ -1156,7 +1156,7 @@ class FileTest extends TestUtil
         $ch = \curl_init();
 
         // 50 bytes downloaded — well below the 100-byte limit → return 0
-        $result = (int) $callback($ch, 50, 50, 0, 0);
+        $result = $callback($ch, 50, 50, 0, 0);
         $this->assertSame(0, $result);
     }
 
@@ -1177,7 +1177,7 @@ class FileTest extends TestUtil
         $ch = \curl_init();
 
         // 200 bytes downloaded — exceeds the 100-byte limit → return 1 (abort)
-        $result = (int) $callback($ch, 200, 200, 0, 0);
+        $result = $callback($ch, 200, 200, 0, 0);
         $this->assertSame(1, $result);
     }
 
