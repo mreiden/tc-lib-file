@@ -1065,6 +1065,10 @@ class FileTest extends TestUtil
 
         $fileUrl = 'file://some/file.txt';
         $this->assertTrue($file->isValidFile($fileUrl));
+
+        // URL schemes are case-insensitive per RFC 3986
+        $fileUrl = 'FILE://some/file.txt';
+        $this->assertTrue($file->isValidFile($fileUrl));
     }
 
     #[Test]
