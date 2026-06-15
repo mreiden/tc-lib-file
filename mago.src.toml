@@ -1,11 +1,12 @@
-#:schema https://mago.carthage.software/1.26.0/schema.json
+#:schema https://mago.carthage.software/1.30.0/schema.json
 version = "1"
 php-version = "8.2.0"
 
 [source]
 workspace = "."
 paths = ["src"]
-includes = ["vendor"]
+includes = ["vendor", "stubs/mago-constants.php"]
+patches = ["stubs/mago-constants-types.php"]
 excludes = []
 
 [source.glob]
