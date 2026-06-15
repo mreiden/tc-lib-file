@@ -226,7 +226,7 @@ class FileTest extends TestUtil
 
         $this->expectException(FileException::class);
         // Reading a write-only handle causes exception.
-        @$file->fReadInt($handle);
+        $file->fReadInt($handle);
         \fclose($handle);
         \unlink($tmp);
     }
@@ -271,6 +271,9 @@ class FileTest extends TestUtil
         \fclose($handle);
     }
 
+    /**
+     * @throws FileException
+     */
     #[Test]
     public function testRfReadSlowDripFailedLastByte(): void
     {
@@ -290,6 +293,9 @@ class FileTest extends TestUtil
         $this->assertSame(\str_repeat('*', $numBytes - 1), $res);
     }
 
+    /**
+     * @throws FileException
+     */
     #[Test]
     public function testRfReadException(): void
     {
@@ -475,10 +481,14 @@ class FileTest extends TestUtil
 
         $rfm = new \ReflectionMethod($testObj, 'getAltUrlFromPath');
         $input = 'some/path.txt';
+        /** @var mixed $result */
         $result = $rfm->invoke($testObj, $input);
         $this->assertSame($input, $result, 'Expected original path when SCRIPT_URI lacks scheme/host');
     }
 
+    /**
+     * @throws FileException
+     */
     #[Test]
     public function testExceptionNoHost(): void
     {
@@ -500,6 +510,7 @@ class FileTest extends TestUtil
 
         $rfm = new \ReflectionMethod($testObj, 'getAltUrlFromPath');
         $input = 'data/file.txt';
+        /** @var mixed $result */
         $result = $rfm->invoke($testObj, $input);
         $this->assertSame($input, $result, 'Spoofed SCRIPT_URI host must not be used to build a URL');
     }
@@ -511,6 +522,7 @@ class FileTest extends TestUtil
         $_SERVER['SCRIPT_URI'] = 'https://myapp.example.com/app/script.php';
 
         $rfm = new \ReflectionMethod($testObj, 'getAltUrlFromPath');
+        /** @var mixed $result */
         $result = $rfm->invoke($testObj, 'data/file.txt');
         $this->assertSame('https://myapp.example.com/data/file.txt', $result);
     }
@@ -590,15 +602,15 @@ class FileTest extends TestUtil
     public function testMaxRemoteSizeDefault(): void
     {
         $file = $this->getTestObject();
-        $this->assertSame(52428800, $file->getMaxRemoteSize());
+        $this->assertSame(52_428_800, $file->getMaxRemoteSize());
     }
 
     #[Test]
     public function testMaxRemoteSizeConfigurable(): void
     {
         $file = $this->getTestObject();
-        $file->setMaxRemoteSize(1048576); // 1MB
-        $this->assertSame(1048576, $file->getMaxRemoteSize());
+        $file->setMaxRemoteSize(1_048_576); // 1MB
+        $this->assertSame(1_048_576, $file->getMaxRemoteSize());
     }
 
     #[Test]
@@ -755,6 +767,7 @@ class FileTest extends TestUtil
 
         $rfm = new \ReflectionMethod($testObj, 'getAltMissingUrlProtocol');
         $input = '//evil.internal/steal';
+        /** @var mixed $result */
         $result = $rfm->invoke($testObj, $input);
         // Without a trusted host the path must come back unchanged (decoded only).
         $this->assertSame(
@@ -772,6 +785,7 @@ class FileTest extends TestUtil
         $_SERVER['HTTPS'] = 'on';
 
         $rfm = new \ReflectionMethod($testObj, 'getAltMissingUrlProtocol');
+        /** @var mixed $result */
         $result = $rfm->invoke($testObj, '//myapp.example.com/path/file.txt');
         $this->assertSame('https://myapp.example.com/path/file.txt', $result);
     }
@@ -787,6 +801,7 @@ class FileTest extends TestUtil
 
         $rfm = new \ReflectionMethod($testObj, 'getAltPathFromUrl');
         $url = 'http://attacker.internal/secret';
+        /** @var mixed $result */
         $result = $rfm->invoke($testObj, $url);
         $this->assertSame($url, $result, 'Spoofed host must not be used to build a local path');
     }
@@ -1160,6 +1175,7 @@ class FileTest extends TestUtil
         $ch = \curl_init();
 
         // 50 bytes downloaded — well below the 100-byte limit → return 0
+        /** @var mixed $result */
         $result = $callback($ch, 50, 50, 0, 0);
         $this->assertSame(0, $result);
     }
@@ -1181,6 +1197,7 @@ class FileTest extends TestUtil
         $ch = \curl_init();
 
         // 200 bytes downloaded — exceeds the 100-byte limit → return 1 (abort)
+        /** @var mixed $result */
         $result = $callback($ch, 200, 200, 0, 0);
         $this->assertSame(1, $result);
     }
@@ -1313,7 +1330,7 @@ class FileTest extends TestUtil
         // Create a File instance with no fixed cURL options so that
         // CURLOPT_RETURNTRANSFER is not set.  curl_exec() then returns true
         // on success, exercising the `$ret === true ? '' : $ret` branch.
-        $file = new File(['127.0.0.1'], 52428800, [], [], []);
+        $file = new File(['127.0.0.1'], 52_428_800, [], [], []);
 
         \ob_start();
         $result = $file->getUrlData('http://127.0.0.1:' . self::$serverPort . '/empty.php');

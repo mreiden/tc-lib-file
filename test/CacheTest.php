@@ -20,8 +20,6 @@ namespace Test;
 
 use Com\Tecnick\File\Cache;
 use Com\Tecnick\File\Exception as FileException;
-//use PHPUnit\Framework\Attributes\PreserveGlobalState;
-//use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use Random\RandomException;
 
@@ -38,6 +36,10 @@ use Random\RandomException;
  */
 class CacheTest extends TestUtil
 {
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     protected function getTestObject(): Cache
     {
         return new Cache('1_2-a+B/c');
@@ -78,6 +80,10 @@ class CacheTest extends TestUtil
     }
     */
 
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     #[Test]
     public function testAutoPrefix(): void
     {
@@ -85,6 +91,10 @@ class CacheTest extends TestUtil
         $this->assertNotEmpty($cache->getFilePrefix());
     }
 
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     #[Test]
     public function testGetCachePath(): void
     {
@@ -113,6 +123,10 @@ class CacheTest extends TestUtil
         $this->assertEquals($path, $cache->getCachePath());
     }
 
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     #[Test]
     public function testGetFilePrefix(): void
     {
@@ -137,6 +151,10 @@ class CacheTest extends TestUtil
         $this->assertMatchesRegularExpression('/_1_2-a-B_c_tst_0123_/', $val);
     }
 
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     #[Test]
     public function testNormalizePathInvalid(): void
     {
@@ -155,6 +173,10 @@ class CacheTest extends TestUtil
         $this->assertSame('', $ref->invoke($cache, $invalid));
     }
 
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     #[Test]
     public function testExceptionWindowsTooLongFileName(): void
     {
@@ -182,7 +204,7 @@ class CacheTest extends TestUtil
         $file = [];
         for ($idx = 1; $idx <= 2; ++$idx) {
             for ($idy = 1; $idy <= 2; ++$idy) {
-                $file[$idk] = $cache->getNewFileName((string) $idx, (string) $idy);
+                $file[$idk] = $cache->getNewFileName((string)$idx, (string)$idy);
                 $this->assertNotFalse($file[$idk]);
                 \file_put_contents($file[$idk], '');
                 $this->assertTrue(\file_exists($file[$idk]));
@@ -219,6 +241,7 @@ class CacheTest extends TestUtil
 
     /**
      * @throws FileException
+     * @throws RandomException
      */
     public function testKeyOnlyDeletesAll(): void
     {
@@ -235,6 +258,7 @@ class CacheTest extends TestUtil
 
     /**
      * @throws FileException
+     * @throws RandomException
      */
     public function testDeleteNonExistingPatterns(): void
     {
@@ -255,11 +279,15 @@ class CacheTest extends TestUtil
         \unlink($file);
     }
 
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     public function testEachInstanceHasOwnPrefix(): void
     {
         // Each instance should have its own prefix
-        $cache1 = new \Com\Tecnick\File\Cache('pfx1');
-        $cache2 = new \Com\Tecnick\File\Cache('pfx2');
+        $cache1 = new Cache('pfx1');
+        $cache2 = new Cache('pfx2');
 
         $prefix1 = $cache1->getFilePrefix();
         $prefix2 = $cache2->getFilePrefix();
@@ -270,15 +298,19 @@ class CacheTest extends TestUtil
         $this->assertStringContainsString('pfx2', $prefix2);
     }
 
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     public function testEachInstanceHasOwnCachePath(): void
     {
-        $cache1 = new \Com\Tecnick\File\Cache();
+        $cache1 = new Cache();
         $path1 = $cache1->getCachePath();
 
         $tempdir = \sys_get_temp_dir() . '/cache_test_' . \uniqid();
         \mkdir($tempdir);
 
-        $cache2 = new \Com\Tecnick\File\Cache();
+        $cache2 = new Cache();
         $cache2->setCachePath($tempdir);
         $path2 = $cache2->getCachePath();
 
@@ -299,7 +331,7 @@ class CacheTest extends TestUtil
      */
     public function testDeleteGlobCharsInTypeSanitised(): void
     {
-        $cache = new \Com\Tecnick\File\Cache('safepfx');
+        $cache = new Cache('safepfx');
 
         // Create a real file we do NOT want deleted.
         $real = $cache->getNewFileName('safe', '1');
@@ -318,10 +350,11 @@ class CacheTest extends TestUtil
 
     /**
      * @throws FileException
+     * @throws RandomException
      */
     public function testDeleteGlobCharsInKeySanitised(): void
     {
-        $cache = new \Com\Tecnick\File\Cache('safepfx2');
+        $cache = new Cache('safepfx2');
 
         $real = $cache->getNewFileName('mytype', 'goodkey');
         \file_put_contents($real, '');
@@ -352,11 +385,15 @@ class CacheTest extends TestUtil
     // Issue 10: deleteOlderThan()
     // -------------------------------------------------------------------------
 
+    /**
+     * @throws FileException
+     * @throws RandomException
+     */
     public function testDeleteOlderThanNoFiles(): void
     {
         // Call deleteOlderThan() when no files exist for this cache prefix.
         // glob() returns [] so the early-return on line 171 is exercised.
-        $cache = new \Com\Tecnick\File\Cache('emptyprefix_' . \uniqid('', true));
+        $cache = new Cache('emptyprefix_' . \uniqid('', true));
         $cache->deleteOlderThan(3600);
         // No exception thrown is the expected outcome.
         $this->expectNotToPerformAssertions();
@@ -364,10 +401,11 @@ class CacheTest extends TestUtil
 
     /**
      * @throws FileException
+     * @throws RandomException
      */
     public function testDeleteOlderThan(): void
     {
-        $cache = new \Com\Tecnick\File\Cache('ttl');
+        $cache = new Cache('ttl');
 
         $old = $cache->getNewFileName('aged', '1');
         $fresh = $cache->getNewFileName('aged', '2');

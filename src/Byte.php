@@ -68,7 +68,9 @@ readonly class Byte
      */
     private function throwOutOfBounds(int $offset, int $length): never
     {
-        throw new RangeException("Out-of-bounds read at offset $offset (length $length, string length $this->length)");
+        throw new RangeException(
+            "Out-of-bounds read at offset {$offset} (length {$length}, string length {$this->length})",
+        );
     }
 
     /**
@@ -237,7 +239,7 @@ readonly class Byte
         $int16 = (((\ord($this->str[$offset]) << 8) | \ord($this->str[$offset + 1])) ^ 0x8000) - 0x8000;
 
         // Add the uint16 fractional part
-        return $int16 + ((\ord($this->str[$offset + 2]) << 8) | \ord($this->str[$offset + 3])) / 65536.0;
+        return $int16 + ((\ord($this->str[$offset + 2]) << 8) | \ord($this->str[$offset + 3])) / 65_536.0;
     }
 
     /**
@@ -251,6 +253,7 @@ readonly class Byte
      */
     public static function unpackOrThrow(string $format, string $string, int $offset = 0): array
     {
-        return \unpack($format, $string, $offset) ?: throw new FileException('Unable to unpack data');
+        $unpacked = \unpack($format, $string, $offset);
+        return $unpacked ? $unpacked: throw new FileException('Unable to unpack data');
     }
 }

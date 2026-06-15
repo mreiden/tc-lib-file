@@ -90,7 +90,7 @@ class Compression
             return '';
         }
 
-        $uncompressedData = @\gzuncompress($data);
+        $uncompressedData = \gzuncompress($data);
         if ($uncompressedData !== false) {
             return $uncompressedData;
         }

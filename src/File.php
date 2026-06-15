@@ -669,7 +669,6 @@ class File
             \strlen($file) > 1 &&
             $file[0] === '/' &&
             $file[1] !== '/' &&
-            !empty($documentRoot) &&
             \is_string($documentRoot) &&
             $documentRoot !== '/'
         ) {

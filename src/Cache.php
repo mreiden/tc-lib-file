@@ -54,8 +54,8 @@ class Cache
      *
      * @param ?string $prefix Common prefix to be used for all cache files
      *
-     *  @throws FileException
-     *  @throws RandomException
+     * @throws FileException
+     * @throws RandomException
      */
     public function __construct(?string $prefix = null)
     {
@@ -64,7 +64,7 @@ class Cache
         $this->defineSystemCachePath();
         $this->setCachePath();
         $prefix ??= \rtrim(
-            \base64_encode(\pack('H*', \md5(\uniqid((string) \random_int(0, \PHP_INT_MAX), true)))),
+            \base64_encode(\pack('H*', \md5(\uniqid((string)\random_int(0, \PHP_INT_MAX), true)))),
             '=',
         );
 
@@ -90,9 +90,13 @@ class Cache
     public function setCachePath(?string $path = null): void
     {
         if ($path === null || \str_contains($path, '://') || !\is_writable($path)) {
-            if (\defined('K_PATH_CACHE') && \is_string(K_PATH_CACHE) && $path !== K_PATH_CACHE) {
-                $this->setCachePath(K_PATH_CACHE);
-                return;
+            if (\defined('K_PATH_CACHE')) {
+                /** @var mixed $cachePath */
+                $cachePath = \K_PATH_CACHE;
+                if (\is_string($cachePath) && $cachePath !== $path) {
+                    $this->setCachePath($cachePath);
+                    return;
+                }
             }
             throw new FileException('Cache path is not writable.');
         }
@@ -112,7 +116,7 @@ class Cache
      * Throws an exception when tempnam() fails, consistent with the rest of the library.
      *
      * @param string $type Type of file
-     * @param string $key  File key (used to retrieve file from cache)
+     * @param string $key File key (used to retrieve file from cache)
      *
      * @return string filename
      *
@@ -128,7 +132,7 @@ class Cache
         if ($this->isWindows && $length > 254) {
             throw new FileException('Cache filepath exceeds maximum length of 258 on Windows.');
         }
-        $numBytes = \max(0, \min(15, (int) \floor((254 - $length) / 2)));
+        $numBytes = \max(0, \min(15, (int)\floor((254 - $length) / 2)));
         if ($numBytes > 0) {
             $filepath .= \bin2hex(\random_bytes($numBytes));
         }
@@ -141,7 +145,7 @@ class Cache
      * Delete cached files
      *
      * @param ?string $type Type of files to delete
-     * @param ?string $key  Specific file key to delete
+     * @param ?string $key Specific file key to delete
      */
     public function delete(?string $type = null, ?string $key = null): void
     {
@@ -157,7 +161,7 @@ class Cache
         }
 
         $files = \glob($path . '*');
-        if (empty($files)) {
+        if (!$files) {
             return;
         }
 
@@ -197,7 +201,10 @@ class Cache
             return;
         }
 
-        $kPathCache = \ini_get('upload_tmp_dir') ?: \sys_get_temp_dir();
+        $kPathCache = \ini_get('upload_tmp_dir');
+        if (!$kPathCache) {
+            $kPathCache = \sys_get_temp_dir();
+        }
         \define('K_PATH_CACHE', $this->normalizePath($kPathCache));
     }
 
