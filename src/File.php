@@ -43,12 +43,12 @@ class File
      * @var array<int, bool|int|string> cURL options.
      */
     protected const CURLOPT_DEFAULT = [
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_MAXREDIRS => 0,
-        CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-        CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-        CURLOPT_TIMEOUT => 30,
-        CURLOPT_USERAGENT => 'tc-lib-file',
+        \CURLOPT_CONNECTTIMEOUT => 5,
+        \CURLOPT_MAXREDIRS => 0,
+        \CURLOPT_PROTOCOLS => \CURLPROTO_HTTPS | \CURLPROTO_HTTP,
+        \CURLOPT_REDIR_PROTOCOLS => \CURLPROTO_HTTPS | \CURLPROTO_HTTP,
+        \CURLOPT_TIMEOUT => 30,
+        \CURLOPT_USERAGENT => 'tc-lib-file',
     ];
 
     /**
@@ -57,10 +57,10 @@ class File
      * @var array<int, bool|int|string> cURL options.
      */
     protected const CURLOPT_FIXED = [
-        CURLOPT_FAILONERROR => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_SSL_VERIFYPEER => true,
+        \CURLOPT_FAILONERROR => true,
+        \CURLOPT_RETURNTRANSFER => true,
+        \CURLOPT_SSL_VERIFYHOST => 2,
+        \CURLOPT_SSL_VERIFYPEER => true,
     ];
 
     /**
@@ -123,8 +123,6 @@ class File
      * Maximum size (in bytes) for remote file reads via HTTP(S) or FTP.
      * Reads exceeding this limit will throw an exception.
      * Default is 52428800 bytes (50 MB).
-     *
-     * @var int
      */
     protected int $maxRemoteSize = 52_428_800;
 
@@ -138,8 +136,6 @@ class File
      *
      * Exposed so the OS-dependent behavior can be exercised on any host,
      * including the Linux-only CI runner.
-     *
-     * @var bool|null
      */
     protected ?bool $caseSensitiveOverride = null;
 
@@ -343,7 +339,7 @@ class File
 
     /**
      * Reads entire file into a string.
-     * The file can be also an URL.
+     * The file can also be a URL.
      *
      * @param string $file Name of the file or URL to read.
      *
@@ -364,7 +360,7 @@ class File
 
     /**
      * Reads entire file into a string.
-     * The file can be also an URL.
+     * The file can also be a URL.
      *
      * @param string $file Name of the file or URL to read.
      *
@@ -437,7 +433,7 @@ class File
      */
     private function withoutPhpWarnings(callable $callback): mixed
     {
-        \set_error_handler(static fn(): bool => true, E_WARNING | E_NOTICE | E_USER_WARNING | E_USER_NOTICE);
+        \set_error_handler(static fn(): bool => true, \E_WARNING | \E_NOTICE | \E_USER_WARNING | \E_USER_NOTICE);
 
         try {
             return $callback();
@@ -458,18 +454,26 @@ class File
      */
     private function createProgressCallback(int &$bytesRead): callable
     {
+        /**
+         * CURLOPT_NOPROGRESS must be set to 0 to make this function actually get called.
+         *
+         * The signature of the CURLOPT_XFERINFOFUNCTION is:
+         * int progress_callback(void *clientp,       // Curl Client (Handle)
+         *                       curl_off_t dltotal,  // Downloaded Total
+         *                       curl_off_t dlnow,    // Downloaded Now
+         *                       curl_off_t ultotal,  // Uploaded Total
+         *                       curl_off_t ulnow);   // Uploaded Now
+         */
         $maxSize = $this->maxRemoteSize;
-        return static function ($_curlResource, $_downloadSize, $downloaded, $_uploadSize, $_uploaded) use (
-            &$bytesRead,
-            $maxSize,
-        ) {
-            // @phpstan-ignore-next-line
-            $bytesRead = (int) $downloaded;
-            if ($bytesRead > $maxSize) {
-                // Returning non-zero aborts the transfer
-                return 1;
-            }
-            return 0;
+        return static function (
+            \CurlHandle $_curlResource,
+            int $_downloadSize,
+            int $downloaded
+        ) use (&$bytesRead, $maxSize): int {
+            $bytesRead = $downloaded;
+
+            // Returning non-zero aborts the transfer
+            return ($bytesRead > $maxSize) ? 1 : \CURLE_OK;
         };
     }
 
@@ -559,7 +563,7 @@ class File
                 return 0;
             }
 
-            $effectiveUrl = (string) \curl_getinfo($curlResource, CURLINFO_EFFECTIVE_URL);
+            $effectiveUrl = (string) \curl_getinfo($curlResource, \CURLINFO_EFFECTIVE_URL);
             $baseUrl = $effectiveUrl !== '' ? $effectiveUrl : $initialUrl;
 
             $redirectUrl = $this->buildRedirectUrl($location, $baseUrl);
@@ -588,10 +592,9 @@ class File
         }
 
         if (
-            \ini_get('allow_url_fopen') && !\defined('FORCE_CURL')
-            || !\function_exists('curl_init')
-            || \preg_match('%^https?://%', $url) === 0
-            || \preg_match('%^https?://%', $url) === false
+            (\ini_get('allow_url_fopen') && !\defined('FORCE_CURL')) ||
+            !\function_exists('curl_init') ||
+            !\preg_match('%^https?://%i', $url)
         ) {
             return false;
         }
@@ -606,23 +609,23 @@ class File
 
         $openBasedir = \ini_get('open_basedir');
         if ($openBasedir === false || $openBasedir === '') {
-            $curlopts[CURLOPT_FOLLOWLOCATION] = true;
+            $curlopts[\CURLOPT_FOLLOWLOCATION] = true;
         }
 
         $curlopts = \array_replace($curlopts, $this->defaultCurlOpts);
         $curlopts = \array_replace($curlopts, $this->curlopts);
         $curlopts = \array_replace($curlopts, $this->fixedCurlOpts);
-        $curlopts[CURLOPT_URL] = $url;
+        $curlopts[\CURLOPT_URL] = $url;
 
         // Use a progress callback to enforce the max remote size limit
         $bytesRead = 0;
-        $curlopts[CURLOPT_NOPROGRESS] = false;
-        $curlopts[CURLOPT_PROGRESSFUNCTION] = $this->createProgressCallback($bytesRead);
+        $curlopts[\CURLOPT_NOPROGRESS] = false;
+        $curlopts[\CURLOPT_XFERINFOFUNCTION] = $this->createProgressCallback($bytesRead);
 
         $invalidRedirect = false;
-        $maxRedirects = (int) ($curlopts[CURLOPT_MAXREDIRS] ?? 0);
+        $maxRedirects = \is_numeric($curlopts[\CURLOPT_MAXREDIRS] ?? null) ? (int) $curlopts[\CURLOPT_MAXREDIRS] : 0;
         if ($maxRedirects !== 0) {
-            $curlopts[CURLOPT_HEADERFUNCTION] = $this->createRedirectValidationCallback($invalidRedirect, $url);
+            $curlopts[\CURLOPT_HEADERFUNCTION] = $this->createRedirectValidationCallback($invalidRedirect, $url);
         }
 
         \curl_setopt_array($curlHandle, $curlopts);
@@ -661,13 +664,15 @@ class File
      */
     public function getAltFilePaths(string $file): array
     {
-        $alt = [$file];
-        $alt[] = $this->getAltLocalUrlPath($file);
         $url = $this->getAltMissingUrlProtocol($file);
-        $alt[] = $url;
-        $alt[] = $this->getAltPathFromUrl($url);
-        $alt[] = $this->getAltUrlFromPath($file);
-        return \array_unique($alt);
+
+        return \array_unique([
+            $file,
+            $this->getAltLocalUrlPath($file),
+            $url,
+            $this->getAltPathFromUrl($url),
+            $this->getAltUrlFromPath($file),
+        ]);
     }
 
     /**
@@ -688,7 +693,7 @@ class File
         }
 
         $resolved = \realpath($file);
-        if (\is_string($resolved) && $resolved !== '') {
+        if (\is_string($resolved)) {
             return $resolved;
         }
 
@@ -698,12 +703,12 @@ class File
             }
 
             $resolvedBase = \realpath($baseDir);
-            if (!\is_string($resolvedBase) || $resolvedBase === '') {
+            if (!\is_string($resolvedBase)) {
                 continue;
             }
 
             $resolved = \realpath($resolvedBase . \DIRECTORY_SEPARATOR . $file);
-            if (\is_string($resolved) && $resolved !== '') {
+            if (\is_string($resolved)) {
                 return $resolved;
             }
         }
@@ -720,15 +725,15 @@ class File
     {
         $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? null;
         if (
-            \strlen($file) > 1
-            && $file[0] === '/'
-            && $file[1] !== '/'
-            && \is_string($documentRoot)
-            && $documentRoot !== '/'
+            \strlen($file) > 1 &&
+            $file[0] === '/' &&
+            $file[1] !== '/' &&
+            \is_string($documentRoot) &&
+            $documentRoot !== '/'
         ) {
             $findroot = \strpos($file, $documentRoot);
-            if ($findroot === false || $findroot > 1) {
-                $file = $this->normalizeLocalSeparators(\htmlspecialchars_decode(\urldecode($documentRoot . $file)));
+            if (($findroot === false) || ($findroot > 1)) {
+                $file = \htmlspecialchars_decode(\urldecode($documentRoot . $file));
             }
         }
 
@@ -760,7 +765,7 @@ class File
     protected function getAltMissingUrlProtocol(string $file): string
     {
         $httpHost = $_SERVER['HTTP_HOST'] ?? null;
-        if (\preg_match('%^//%', $file) && \is_string($httpHost) && $this->isValidHost($httpHost)) {
+        if (\str_starts_with($file, '//') && \is_string($httpHost) && $this->isValidHost($httpHost)) {
             $file = $this->getDefaultUrlProtocol() . ':' . \str_replace(' ', '%20', $file);
         }
 
@@ -796,7 +801,7 @@ class File
         $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? null;
 
         if (
-            \preg_match('%^(https?)://%', $url) !== 1
+            \preg_match('%^(https?)://%i', $url) !== 1
             || !\is_string($httpHost)
             || !$this->isValidHost($httpHost)
             || !\is_string($documentRoot)
@@ -833,7 +838,7 @@ class File
             \is_string($scriptUri)
             && $scriptUri !== ''
             && \preg_match('%^(https?)://%', $file) !== 1
-            && \preg_match('%^//%', $file) !== 1
+            && !\str_starts_with($file, '//')
         ) {
             $urldata = \parse_url($scriptUri);
             if (
@@ -1099,7 +1104,8 @@ class File
             $file = 'file://' . $file;
         }
 
-        if (!\str_starts_with($file, 'file://')) {
+        // Compare URL scheme case-insensitively per RFC 3986
+        if (!\str_starts_with(\strtolower($file), 'file://')) {
             return false;
         }
 
@@ -1149,11 +1155,11 @@ class File
      *
      * @param string $path path to check
      *
-     * @return boolean true if the path is relative
+     * @return bool true if the path is relative
      */
-    protected function hasDoubleDots(string $path): bool
+    public function hasDoubleDots(string $path): bool
     {
-        return \str_contains(\str_ireplace('%2E', '.', \html_entity_decode($path, ENT_QUOTES, 'UTF-8')), '..');
+        return \str_contains(\str_ireplace('%2E', '.', \html_entity_decode($path, \ENT_QUOTES, 'UTF-8')), '..');
     }
 
     /**

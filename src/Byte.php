@@ -110,7 +110,7 @@ readonly class Byte
      */
     public function getUShort(int $offset): int
     {
-        if ($offset < 0 || $offset > ($this->length - 2)) {
+        if ($offset < 0 || $offset > $this->length - 2) {
             $this->throwOutOfBounds($offset, 2);
         }
 
@@ -128,7 +128,7 @@ readonly class Byte
      */
     public function getShort(int $offset): int
     {
-        if ($offset < 0 || $offset > ($this->length - 2)) {
+        if ($offset < 0 || $offset > $this->length - 2) {
             $this->throwOutOfBounds($offset, 2);
         }
 
@@ -151,7 +151,7 @@ readonly class Byte
      */
     public function getUFWord(int $offset): int
     {
-        if ($offset < 0 || $offset > ($this->length - 2)) {
+        if ($offset < 0 || $offset > $this->length - 2) {
             $this->throwOutOfBounds($offset, 2);
         }
 
@@ -170,7 +170,7 @@ readonly class Byte
      */
     public function getFWord(int $offset): int
     {
-        if ($offset < 0 || $offset > ($this->length - 2)) {
+        if ($offset < 0 || $offset > $this->length - 2) {
             $this->throwOutOfBounds($offset, 2);
         }
 
@@ -192,16 +192,14 @@ readonly class Byte
      */
     public function getULong(int $offset): int
     {
-        if ($offset < 0 || $offset > ($this->length - 4)) {
+        if ($offset < 0 || $offset > $this->length - 4) {
             $this->throwOutOfBounds($offset, 4);
         }
 
-        return (
-            (\ord($this->str[$offset]) << 24)
+        return (\ord($this->str[$offset]) << 24)
             | (\ord($this->str[$offset + 1]) << 16)
             | (\ord($this->str[$offset + 2]) << 8)
-            | \ord($this->str[$offset + 3])
-        );
+            | \ord($this->str[$offset + 3]);
     }
 
     /**
@@ -215,13 +213,12 @@ readonly class Byte
      */
     public function getLong(int $offset): int
     {
-        if ($offset < 0 || $offset > ($this->length - 4)) {
+        if ($offset < 0 || $offset > $this->length - 4) {
             $this->throwOutOfBounds($offset, 4);
         }
 
         // The uint32 value
-        $val =
-            (\ord($this->str[$offset]) << 24)
+        $val = (\ord($this->str[$offset]) << 24)
             | (\ord($this->str[$offset + 1]) << 16)
             | (\ord($this->str[$offset + 2]) << 8)
             | \ord($this->str[$offset + 3]);
@@ -244,7 +241,7 @@ readonly class Byte
      */
     public function getFixed(int $offset): float
     {
-        if ($offset < 0 || $offset > ($this->length - 4)) {
+        if ($offset < 0 || $offset > $this->length - 4) {
             $this->throwOutOfBounds($offset, 4);
         }
 
@@ -252,6 +249,6 @@ readonly class Byte
         $int16 = (((\ord($this->str[$offset]) << 8) | \ord($this->str[$offset + 1])) ^ 0x8000) - 0x8000;
 
         // Add the uint16 fractional part
-        return $int16 + (((\ord($this->str[$offset + 2]) << 8) | \ord($this->str[$offset + 3])) / 65_536.0);
+        return $int16 + ((\ord($this->str[$offset + 2]) << 8) | \ord($this->str[$offset + 3])) / 65_536.0;
     }
 }

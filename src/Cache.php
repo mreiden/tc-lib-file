@@ -18,6 +18,9 @@ declare(strict_types=1);
 
 namespace Com\Tecnick\File;
 
+use Com\Tecnick\File\Exception as FileException;
+use Random\RandomException;
+
 /**
  * Com\Tecnick\Pdf\File\Cache
  *
@@ -43,10 +46,10 @@ class Cache
      */
     private const SAFE_NAME_PATTERN = '/[^a-zA-Z0-9_\-]/';
 
+    protected bool $isWindows;
+
     /**
      * Cache path (per-instance)
-     *
-     * @var string
      */
     protected string $path = '';
 
@@ -59,17 +62,22 @@ class Cache
      * Set the file prefix (common name)
      *
      * @param ?string $prefix Common prefix to be used for all cache files
+     *
+     * @throws FileException
+     * @throws RandomException
      */
     public function __construct(?string $prefix = null)
     {
+        $this->isWindows = \PHP_OS_FAMILY === 'Windows';
+
         $this->defineSystemCachePath();
         $this->setCachePath();
         $prefix ??= \rtrim(
-            \base64_encode(\pack('H*', \md5(\uniqid((string) \mt_rand(0, \mt_getrandmax()), true)))),
+            \base64_encode(\pack('H*', \md5(\uniqid((string)\random_int(0, \PHP_INT_MAX), true)))),
             '=',
         );
 
-        $safePrefix = \preg_replace(self::SAFE_NAME_PATTERN, '', \strtr($prefix, '+/', '-_')) ?? '';
+        $safePrefix = \preg_replace('/[^a-zA-Z0-9_\-]/', '', \strtr($prefix, '+/', '-_')) ?? '';
         $this->prefix = '_' . $safePrefix . '_';
     }
 
@@ -85,14 +93,22 @@ class Cache
      * Set the default cache directory path
      *
      * @param ?string $path Cache directory path; if null use the K_PATH_CACHE value
+     *
+     * @throws FileException
      */
     public function setCachePath(?string $path = null): void
     {
         if ($path === null || \str_contains($path, '://') || !\is_writable($path)) {
-            $this->path = (string) \constant('K_PATH_CACHE');
-            return;
+            if (\defined('K_PATH_CACHE')) {
+                /** @var mixed $cachePath */
+                $cachePath = \K_PATH_CACHE;
+                if (\is_string($cachePath) && $cachePath !== $path) {
+                    $this->setCachePath($cachePath);
+                    return;
+                }
+            }
+            throw new FileException('Cache path is not writable.');
         }
-
         $this->path = $this->normalizePath($path);
     }
 
@@ -151,12 +167,12 @@ class Cache
      * Delete cached files
      *
      * @param ?string $type Type of files to delete
-     * @param ?string $key  Specific file key to delete
+     * @param ?string $key Specific file key to delete
      */
     public function delete(?string $type = null, ?string $key = null): void
     {
-        $safeType = $type !== null ? \preg_replace(self::SAFE_NAME_PATTERN, '', $type) : null;
-        $safeKey = $key !== null ? \preg_replace(self::SAFE_NAME_PATTERN, '', $key) : null;
+        $safeType = $type !== null ? \preg_replace('/[^a-zA-Z0-9_\-]/', '', $type) : null;
+        $safeKey = $key !== null ? \preg_replace('/[^a-zA-Z0-9_\-]/', '', $key) : null;
 
         $path = $this->path . $this->prefix;
         if ($safeType !== null) {
@@ -166,13 +182,14 @@ class Cache
             }
         }
 
-        $path .= '*';
-        $files = \glob($path);
-        if ($files === [] || $files === false) {
+        $files = \glob($path . '*');
+        if (!$files) {
             return;
         }
 
-        \array_map('unlink', $files);
+        foreach ($files as $file) {
+            \unlink($file);
+        }
     }
 
     /**
@@ -225,8 +242,8 @@ class Cache
             return '';
         }
 
-        if (!\str_ends_with($rpath, \DIRECTORY_SEPARATOR)) {
-            $rpath .= \DIRECTORY_SEPARATOR;
+        if (!\str_ends_with($rpath, '/')) {
+            $rpath .= '/';
         }
 
         return $rpath;
